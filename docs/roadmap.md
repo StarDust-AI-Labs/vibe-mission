@@ -6,12 +6,13 @@
 
 每个探针 = 一个最小插件，全部按 **plugin-creator 流程**打包（清单 → 本地校验 → 仓库根 `marketplace.json` 注册 → 用户 UI 安装验证），交付口径如实标注「已验证 / 待手动 / 未验证」。
 
+**A 已拍板（2026-11-19），不再探针**：dispatch **借用宿主**——owner 会话直接调宿主原生会话工具（`CreateSession / SendToSession / ReadSession / WaitSessions / InterruptSession`，已实证齐全）。宿主扩展 API（sessions.* grants，含 resolveInteraction 代批）**不作为 v1 依赖**；日后确认对第三方开放可再评估升级。探针清单调整为：
+
 | # | 探针 | 验什么 | 决定什么 |
 |---|---|---|---|
-| A | **宿主扩展 API 探针** | ZCode `extension.main` + `grants: [sessions.read]` 能否激活、能否调 `sessions.*`（清单为文档外手写字段，见 adapters.md §2.1） | dispatch 走扩展 API（正统）还是宿主会话工具（现状可用） |
-| B | **子会话权限行为** | 建一个必然触发审批的子会话：卡住 / 自动拒 / 继承模式？ | 权限策略三选一（阻塞告警 / 全自动+白名单 / 扩展代批） |
+| B | **子会话权限行为** | 建一个必然触发审批的子会话：卡住 / 自动拒 / 继承模式？ | 权限策略二选一（阻塞告警 / 全自动+白名单；扩展代批随 A 关闭出局） |
 | C | **聊天入口会话复用** | 飞书 DM 连发两条消息，activeTask 复用还是新开？ | owner 上下文恢复策略 |
-| D | **面板渲染**（A 失败才做） | 最小 MCP App 面板装进宿主 | 看板默认载体（面板 vs Web） |
+| D | **面板渲染** | 最小 MCP App 面板装进宿主 | 看板默认载体（面板 vs Web） |
 
 历史：原 ZCode 定制方案下 P0 已跑过三项（会话工具齐全 ✅、飞书 bot 推送 ✅、面板源码冒烟 🟡）；本仓以通用协议重启，探针在**本仓代码**上重跑。
 

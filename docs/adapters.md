@@ -26,7 +26,7 @@
 - **dispatch**：宿主会话工具 `CreateSession / SendToSession / WaitSessions / ReadSession / InterruptSession / ListProjects`——P0 已实证新会话内全套可用。
 - **observe**：钩子事件共 7 种（`SessionStart / UserPromptSubmit / PreToolUse / PermissionRequest / PostToolUse / PostToolUseFailure / Stop`），插件钩子自动启用 runner；`Stop` 可续跑最多 3 次。
 - **surface**：`ui.surfaces` + MCP App（官方 documents/pdf 等 4 个插件同款做法）；面板可用性字段为 `session` 级——是否常驻待 P0 复验。
-- **扩展 API（探索中）**：宿主内部存在 `sessions.read/write/fullAccess + notifications` 四级授权，含 `createSession/forkSession/sendToSession/interruptSession/resolveInteraction/setPermissionMode` 及 `onDidChange*` 订阅。**是否对第三方插件开放未证实**——若可用，dispatch/observe/代批都有更正统的落点；P0-A 探针验证。
+- **扩展 API（不作为 v1 依赖）**：宿主内部存在 `sessions.read/write/fullAccess + notifications` 四级授权（含 `resolveInteraction` 代批）。**2026-11-19 owner 拍板：借用宿主**——v1 dispatch 全部走 owner 会话工具，不依赖该 API；日后若确认对第三方开放，可再评估升级（尤其代批）。
 - **飞书**：宿主原生机器人（DM 绑 workspace + activeTask，长连接由宿主维护）负责入向；出向告警复用 `lark-cli`（同一应用，bot 身份推送已实证）。
 
 已知坑：
@@ -43,7 +43,7 @@
 - **交付闭环**：agent 负责生成源码 + 本地校验（JSON 合法性 / 路径越界 / 冒烟测试）；「添加市场 → 安装 → 启用 → 试用」必须由用户在 UI 完成——plugin-creator 原则禁止 agent 代做交接。改码后无热重载，需「刷新市场 + 更新」两步。
 - **接受的硬约束**（官方文档明示）：`userConfig` 的 `sensitive` 字段 UI 输不进也存不了（飞书凭据一律走环境变量或宿主凭据库）；`agents/channels/lspServers/outputStyles/settings` 字段声明但不执行；无 npm/pip 分发。
 - **core 代码落位**：MCP server 必须自包含在插件根内（路径不得越界）。v1 把 core 实现放在插件内，顶层 `core/` 只承载设计与共享约定；等第二个宿主适配器落地时再抽取到顶层，两边 sync。
-- **P0-A 注意**：宿主二进制里存在 `extension` 字段 schema（`engines/main/activationEvents/grants`），但 **plugin-creator 的清单规范文档未记载**。探针插件的清单会手写文档外字段；若本地校验或宿主详情页报 warning，以宿主实际 schema 为准——这正是探针要回答的问题。
+- **扩展字段说明**：宿主二进制存在 `extension` 字段 schema，但 plugin-creator 规范未记载；2026-11-19 已拍板不依赖该路线（借用宿主），本插件清单**不使用文档外字段**。
 
 ## 3. Claude Code 适配器（计划）
 
