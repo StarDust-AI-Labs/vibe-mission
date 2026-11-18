@@ -99,6 +99,19 @@ events(                           -- 审计流水，只追加
 
 数据落点：宿主提供的插件数据目录（如 ZCode 的 `${ZCODE_PLUGIN_DATA}`），不入仓、不上传。
 
+### 4.1 MCP 工具面（v1 定稿）
+
+| 工具 | 关键入参 | 语义 | 状态约束 |
+|---|---|---|---|
+| `task_create` | title, keywords?, workspace?, project?, parent_id? | 登记任务 | → `todo`（未分类先落 `inbox`） |
+| `task_update` | id, status?, session_id?, blocked_reason?, decision_question?, decision_options?, keywords?, artifacts?, evidence? | 状态迁移 / 补字段 | 校验迁移合法性，**写 events**；迁移到三告警态时供告警路径消费 |
+| `task_query` | id | 单任务详情 + 最近 events | — |
+| `task_list` | filter: status / host / project | 任务列表 | — |
+| `board_summary` | — | 仪表盘计数 + 高亮项（running / waiting_decision / blocked / review） | — |
+| `decision_answer` | id, answer | 用户拍板回流 | `waiting_decision` → `running` / `done` |
+
+**告警路径（v1 双通道，不依赖 owner 在线）**：owner 在线时由 owner 统一发送（skill 规则）；owner 空闲或任务会话自行结束时，由 Stop 钩子胶水脚本直接调 lark-cli 推送固定模板。两条路径都以 `task_update` 的落库动作为事实来源，先库后推，幂等（同任务 10 分钟内不重复推）。
+
 ## 5. 与宿主原生任务系统的关系
 
 | | 宿主原生任务列表 | TaskPier |

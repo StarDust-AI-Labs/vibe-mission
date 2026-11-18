@@ -44,10 +44,12 @@ ZCode users: after cloning, the repo root doubles as a plugin marketplace — ad
 
 | Doc | What it covers |
 |---|---|
-| [Architecture](docs/architecture.md) | Layers, protocol choice (MCP), positioning vs native host task systems |
-| [Adapter contract](docs/adapters.md) | What a host adapter must provide; ZCode / Claude Code notes |
+| [Architecture](docs/architecture.md) | Layers, MCP tool surface, context/concurrency/routing design, positioning vs native host task systems |
+| [Adapter contract](docs/adapters.md) | Adapter tiers (native / CLI / observe-only), what a host adapter must provide; ZCode notes |
+| [Owner skill](docs/owner-skill.md) | The owner agent's SKILL.md blueprint: boot sequence, routing tree, dispatch & guardrails |
 | [Status model](docs/status-model.md) | The 8-state lifecycle and alert rules |
 | [Roadmap](docs/roadmap.md) | P0 probes → v1 → v1.1, open questions |
+| [Decision log](docs/decisions.md) | Every key decision, why it was made, and what it ruled out |
 
 ## Roadmap (short)
 
