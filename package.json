@@ -1,0 +1,24 @@
+{
+  "name": "taskpier",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Unified task hub for AI coding agents - one store, one board, one alert channel. Host-agnostic, MCP-first.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StarDust-AI-Labs/taskpier.git"
+  },
+  "keywords": [
+    "mcp",
+    "ai-agents",
+    "task-management",
+    "kanban",
+    "zcode",
+    "claude-code",
+    "feishu",
+    "lark"
+  ]
+}

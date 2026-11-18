@@ -1,0 +1,122 @@
+# Architecture
+
+> Status: v0 draft (2026-11-18). Working language: Chinese; English translation comes with v1.
+
+## 1. 目标与非目标
+
+**目标**
+
+- 跨宿主（ZCode / Claude Code / Codex / …）统一管理 AI 编码代理的任务：登记、跟踪、可视化、告警。
+- 用户只需要和"工程负责人"这个角色对话（聊天入口可为飞书/宿主会话），任务被统一派工与回报。
+- 持久化只有一处：任务库。宿主会话、负责人会话都可以生灭。
+
+**非目标**
+
+- 不重造各宿主已有的原生任务列表/会话系统（定位见 §5）。
+- 不做通用项目管理 SaaS（Jira/Linear 的替代品）。
+- v1 不做生产环境自动部署/审批绕过（安全边界见 §7）。
+
+## 2. 分层
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 用户入口                                                   │
+│   飞书/Lark（DM + 群）  ·  宿主会话  ·  Web 看板             │
+└──────────────┬──────────────────────────────────────────┘
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│ Channel 适配层（出向告警/入向指令 → 规范化消息）              │
+│   feishu  ·  slack(later)  ·  telegram(later)            │
+└──────────────┬──────────────────────────────────────────┘
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│ Owner 角色（负责人）—— 半自动编排                            │
+│   意图路由 · 拆解 · 派工（经 Host 适配层） · 状态回写 · 回报     │
+└──────────────┬──────────────────────────────────────────┘
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│ TaskPier Core（唯一持久层）                                 │
+│   任务库(SQLite) + 事件审计 + MCP 工具面                     │
+│   task_create / task_update / task_query / board_summary … │
+└──────────────┬──────────────────────────────────────────┘
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│ Host 适配层（薄）                                          │
+│   zcode  ·  claude-code  ·  generic(MCP-only 宿主)        │
+│   能力：dispatch（建会话/发消息/等待/中断）、observe（活动信号）│
+│         surface（可选：内嵌面板 or 无）                      │
+└─────────────────────────────────────────────────────────┘
+```
+
+## 3. 协议选择：为什么是 MCP
+
+- MCP 是当前工具接入的事实标准：ZCode、Claude Code、Cursor、Codex 等宿主均支持 MCP 客户端接入。核心能力（任务库读写）以 MCP server 形态提供，**任何 MCP 宿主无需专门适配即可用**。
+- 各宿主差异大的部分（会话编排 API、钩子事件、UI 面）被隔离在 Host 适配层，协议不外泄。
+- Channel（飞书等）与 MCP 无关，走适配层，未来可替换。
+
+含义：**"通用插件协议"的落法 = MCP 为核心协议 + 每宿主一个薄适配器**，而不是发明一个新协议。
+
+## 4. 任务库（初稿 schema）
+
+```sql
+tasks(
+  id TEXT PRIMARY KEY,            -- tp-<n>
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,           -- 8 态，见 status-model.md
+  host TEXT,                      -- zcode / claude-code / …
+  project TEXT,                   -- 宿主内项目/工作区标识
+  session_id TEXT,                -- 宿主任务会话 id（可空）
+  workspace TEXT,                 -- 落点目录
+  parent_id TEXT,                 -- 拆解父子关系
+  blocked_reason TEXT,
+  decision_question TEXT,         -- waiting_decision 时的问题+选项
+  decision_options TEXT,
+  artifacts TEXT,                 -- 产出物路径[]
+  evidence TEXT,                  -- 验收证据[]
+  created_at INT, updated_at INT
+);
+events(                           -- 审计流水，只追加
+  id, task_id, ts, kind,          -- status_change / note / dispatch / alert / decision
+  actor TEXT,                     -- owner / host:<id> / user / channel:feishu
+  payload TEXT
+);
+```
+
+数据落点：宿主提供的插件数据目录（如 ZCode 的 `${ZCODE_PLUGIN_DATA}`），不入仓、不上传。
+
+## 5. 与宿主原生任务系统的关系
+
+| | 宿主原生任务列表 | TaskPier |
+|---|---|---|
+| 范围 | 单宿主、单工作区 | 跨宿主、跨项目 |
+| 状态 | 运行/归档等宿主自定义 | 统一 8 态 + 告警规则 |
+| 可视化 | 宿主内 | 本地 Web 看板（宿主面板为可选增强） |
+| 遥控 | 宿主内 | 聊天入口（飞书等）统一遥控 |
+| 真相源 | 会话本身 | 任务库引用会话（session_id 外链） |
+
+原则：**宿主任务系统是事实，TaskPier 是状态层与告警层**。TaskPier 不抢宿主的职责，只做宿主做不了的三件事：跨宿主聚合、主动告警、聊天遥控。
+
+## 6. Owner 角色（v1 = 半自动）
+
+- v1：用户说"把 X 做了"→ owner 判重、登记任务、经 Host 适配层建任务会话、跟踪状态、完成或卡住时回报。**不自动拆解**。
+- v1.1：一句话自动拆解为子任务树（`parent_id`），按并发上限排队派工。
+- Owner 是角色不是会话：其行为规则放在 adapter 的 skill/指令包里，任何被授命的会话读取任务库即可上任。
+
+## 7. 权限与安全边界
+
+1. **默认不代批**。任务会话遇权限审批时的策略由 P0 探针（见 roadmap）决定；候选：阻塞告警（最安全）/ 宿主侧全自动（需白名单）/ 宿主扩展 API 代批（能力存在但权限面极大，单独评审）。
+2. 聊天指令**不得绕过宿主或仓库的生产门禁**（如 AGENTS.md 约束）。
+3. 凭据不进插件配置（宿主多无安全凭据存储），走环境变量或宿主系统凭据库。
+4. 告警通道只读用户绑定关系，不扫其他会话。
+
+## 8. 可移植性
+
+- Core：纯 Node ≥ 20，零第三方依赖（SQLite 走 node:sqlite），stdio MCP server。
+- 看板：本地 HTTP 静态页 + JSON API，浏览器打开即用。
+- 部署形态：跟随宿主插件机制安装（ZCode 插件 / Claude Code plugin / 裸 MCP 配置），同一份源码。
+
+## 9. 待定问题（随 P0 探针收敛）
+
+- 宿主扩展 API（如 ZCode 的 sessions.* grants）是否对第三方开放 → 决定 dispatch 走扩展 API 还是宿主会话工具。
+- 内嵌面板是否 session 级 → 决定看板默认载体（Web vs 面板）。
+- 入向聊天消息在宿主侧的会话复用规则 → 决定 owner 上下文恢复策略。
