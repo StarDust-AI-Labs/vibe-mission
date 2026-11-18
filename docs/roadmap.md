@@ -33,8 +33,8 @@
 
 - 一句话自动拆解任务树（并发上限、排队）。
 - 告警卡片按钮（通过/打回/更多）。
-- Slack / Telegram 通道。
-- Claude Code 适配器。
+- **Tier 1 通用 CLI 适配器**（shell 派工：Kimi CLI / Claude Code / Codex 等命令行形态的宿主，见 adapters.md §1.1）。
+- Workbuddy 探针（问 agent 列工具清单，判定 Tier 2/1/0）+ Claude Code 适配器。
 
 ## 悬而未决（Open questions）
 
