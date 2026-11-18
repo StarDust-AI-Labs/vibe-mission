@@ -4,9 +4,11 @@
 
 ## P0 探针（半天，先于一切编码）
 
+每个探针 = 一个最小插件，全部按 **plugin-creator 流程**打包（清单 → 本地校验 → 仓库根 `marketplace.json` 注册 → 用户 UI 安装验证），交付口径如实标注「已验证 / 待手动 / 未验证」。
+
 | # | 探针 | 验什么 | 决定什么 |
 |---|---|---|---|
-| A | **宿主扩展 API 探针** | ZCode `extension.main` + `grants: [sessions.read]` 能否激活、能否调 `sessions.*` | dispatch 走扩展 API（正统）还是宿主会话工具（现状可用） |
+| A | **宿主扩展 API 探针** | ZCode `extension.main` + `grants: [sessions.read]` 能否激活、能否调 `sessions.*`（清单为文档外手写字段，见 adapters.md §2.1） | dispatch 走扩展 API（正统）还是宿主会话工具（现状可用） |
 | B | **子会话权限行为** | 建一个必然触发审批的子会话：卡住 / 自动拒 / 继承模式？ | 权限策略三选一（阻塞告警 / 全自动+白名单 / 扩展代批） |
 | C | **聊天入口会话复用** | 飞书 DM 连发两条消息，activeTask 复用还是新开？ | owner 上下文恢复策略 |
 | D | **面板渲染**（A 失败才做） | 最小 MCP App 面板装进宿主 | 看板默认载体（面板 vs Web） |
@@ -17,10 +19,10 @@
 
 范围（已与 owner 对齐，2026-11-18）：
 
-1. **core**：任务库（SQLite）+ MCP server（task_create / task_update / task_query / task_list / board_summary / decision_answer）。
+1. **core**：任务库（SQLite）+ MCP server（task_create / task_update / task_query / task_list / board_summary / decision_answer）。实现落在 zcode 插件内（插件根自包含约束），顶层 `core/` 承载设计，第二个适配器出现时抽取共享。
 2. **board**：本地 Web 看板，8 态列 + 仪表盘计数 + 阻塞/待决策高亮。
 3. **channel-feishu**：`waiting_decision` / `blocked` / `review` 三态推送；文本交互（"通过/打回/停掉 #N"）。
-4. **adapter-zcode**：dispatch = 宿主会话工具；observe = 钩子；P0 结论决定是否升级为扩展 API。
+4. **adapter-zcode**：按 plugin-creator 模式打包（skills + hooks + mcpServers + userConfig）；dispatch = 宿主会话工具；observe = 钩子；P0 结论决定是否升级为扩展 API。仓库根即测试市场，开源后可作 git 源市场直接安装。
 5. **owner skill**：登记→派工→跟踪→回报的指令包（半自动，不拆解）。
 
 验收：用户在飞书说"把 X 做了"→ 任务被登记、派工、执行、回报，全程可在看板看到。

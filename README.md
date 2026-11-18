@@ -29,11 +29,14 @@ TaskPier's answer:
 
 ```
 taskpier/
-├── core/       Task store (SQLite) + MCP tool server        (placeholder)
-├── adapters/   Host adapters: ZCode, Claude Code, generic   (placeholder)
-├── board/      Local web dashboard                          (placeholder)
-└── docs/       Architecture, adapter contract, status model, roadmap
+├── marketplace.json  Local test marketplace root — add this folder in the ZCode UI to install (planned)
+├── core/             Task store (SQLite) + MCP server design; v1 implementation lives inside the zcode plugin
+├── adapters/         Host adapters: zcode (plugin-creator packaged), claude-code, generic
+├── board/            Local web dashboard                          (placeholder)
+└── docs/             Architecture, adapter contract, status model, roadmap
 ```
+
+ZCode users: after cloning, the repo root doubles as a plugin marketplace — add it under 插件市场 → 添加 and install `taskpier` from there. Remote users can add it as a `git` marketplace source; no npm required.
 
 ## Documentation
 
