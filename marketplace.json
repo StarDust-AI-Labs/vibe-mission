@@ -1,0 +1,21 @@
+{
+  "name": "taskpier",
+  "interface": {
+    "displayName": "TaskPier 任务码头"
+  },
+  "plugins": [
+    {
+      "name": "taskpier",
+      "source": "./adapters/zcode/taskpier",
+      "version": "0.1.0",
+      "description": "Unified task hub for this host: owner agent skill, task store (MCP), session-start briefing.",
+      "description_i18n": {
+        "zh-CN": "本宿主的统一任务枢纽：工程负责人 skill + 任务库（MCP）+ 会话开始简报。"
+      },
+      "author": {
+        "name": "StarDust AI Labs"
+      },
+      "category": "developer-tools"
+    }
+  ]
+}

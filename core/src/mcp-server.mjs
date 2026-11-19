@@ -6,7 +6,8 @@
 // Usage:
 //   node mcp-server.mjs [--db <path>]
 // DB path resolution order: --db flag > TASKPIER_DB_PATH env >
-// TASKPIER_PLUGIN_DATA env (host-provided data dir) > ./taskpier.sqlite
+// TASKPIER_PLUGIN_DATA env (host-provided data dir) > ZCODE_PLUGIN_DATA env >
+// ./taskpier.sqlite
 
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
@@ -18,11 +19,13 @@ const SERVER_INFO = { name: 'taskpier-core', version: '0.1.0' };
 const DEFAULT_PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(['2025-06-18', '2025-11-25']);
 
-function resolveDbPath(argv) {
+/** Shared with hook glue so every process resolves the same store. */
+export function resolveDbPath(argv = []) {
   const flagIdx = argv.indexOf('--db');
   if (flagIdx !== -1 && argv[flagIdx + 1]) return argv[flagIdx + 1];
   if (process.env.TASKPIER_DB_PATH) return process.env.TASKPIER_DB_PATH;
   if (process.env.TASKPIER_PLUGIN_DATA) return `${process.env.TASKPIER_PLUGIN_DATA}/taskpier.sqlite`;
+  if (process.env.ZCODE_PLUGIN_DATA) return `${process.env.ZCODE_PLUGIN_DATA}/taskpier.sqlite`;
   return './taskpier.sqlite';
 }
 
@@ -101,8 +104,7 @@ export function createRouter(store) {
 }
 
 export function main(argv = process.argv) {
-  const dbPath = resolveDbPath(argv.slice(2));
-  const store = openStore(dbPath);
+  const dbPath = resolveDbPath(argv.slice(2));  const store = openStore(dbPath);
   const route = createRouter(store);
   const write = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
 

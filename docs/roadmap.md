@@ -29,7 +29,7 @@
 验收 1（闭环）：用户在飞书说"把 X 做了"→ 任务被登记、派工、执行、回报，全程可在看板看到。
 验收 2（连续性与路由）：隔天在飞书说"#12 的截图再改一版"→ 消息被路由进 #12 的原任务会话续做，而非新建任务；owner 换会话后依然能接上上下文。
 
-**v1 开工顺序**：core（任务库+MCP server，无前置依赖）→ owner skill（路由+派工+护栏，见 owner-skill.md）→ board（Web 兜底）→ channel-feishu → plugin-creator 打包 + P0-B/C 回填结论。
+**v1 开工顺序**：core ✅（已实现，25 tests）→ owner skill 正式化 + zcode 适配器插件打包（**严格按 plugin-creator 六步流程**，D15：ZCode 风味产物 + node 校验）→ board（Web 兜底）→ channel-feishu → P0-B/C 回填结论。
 
 ## v1.1（自动拆解 + 体验）
 
