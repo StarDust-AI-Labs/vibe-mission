@@ -16,5 +16,6 @@
 | D10 | 2026-11-19 | **宿主能力阶梯 Tier 2/1/0**（原生编排 / CLI 派工 / 只盯不派） | 不赌 Workbuddy/Kimi 开放性；Tier 1 用 CLI 子进程派工不依赖任何宿主 API | ✅ |
 | D11 | 待定 | 权限策略：阻塞告警 vs 全自动+白名单 | 由 P0-B 子会话权限行为实测决定 | ⏳ |
 | D12 | 待定 | 看板默认载体：宿主面板 vs 本地 Web | 由 P0-D 面板渲染实测决定（v1 先按 Web 兜底开发） | ⏳ |
+| D13 | 2026-11-20 | **端口化选型**：Ports & Adapters + ISP 三端口（Dispatch/Observe/Notify）+ 能力探测降级 + ACL + adapter=code+skill patch | 用户（专业软件工程师）提出抽象适配问题；Tier 是运行期探测结果非枚举；不做微内核（YAGNI），rule of two | ✅ |
 
 待定项随探针回填结论后移入"已定"。

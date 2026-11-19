@@ -31,6 +31,54 @@
 
 宿主开放性验证方法（10 分钟）：在该宿主会话里问 agent"列出你当前可用工具"，有会话类工具即 Tier 2；否则查 CLI 形态；都没有即 Tier 0。
 
+### 1.2 端口定义与模式选型（2026-11-20 定）
+
+总体架构 = **Ports & Adapters（六边形）**：core 定义端口，每宿主实现适配器。四个关键设计点：
+
+1. **端口按能力隔离（ISP），非 fat interface**——Tier 0 不被迫实现不存在的能力：
+
+```ts
+type DispatchMode = 'native' | 'cli' | null;   // Tier2 / Tier1 / Tier0
+
+interface HostAdapter {
+  readonly id: string;                          // 'zcode' | 'workbuddy' | 'kimi-cli' | …
+  capabilities(): { dispatch: DispatchMode; observe: boolean; surface: 'panel' | null };
+}
+
+interface DispatchPort {                        // Strategy: NativeSessionDispatch | CliProcessDispatch
+  create(spec: DispatchSpec): Promise<SessionRef>;
+  send(ref: SessionRef, message: string): Promise<Ack>;
+  wait(refs: SessionRef[], mode: 'any' | 'all', timeoutMs: number): Promise<WaitResult>;
+  interrupt(ref: SessionRef): Promise<Ack>;
+  readContext?(ref: SessionRef): Promise<string>;   // 可选能力
+}
+
+interface ObservePort {                         // hooks → HostEvent → 回写 core
+  subscribe(handler: (e: HostEvent) => void): () => void;
+}
+
+interface NotifyPort { }                        // 与 HostAdapter 正交的另一族：feishu/slack/telegram
+```
+
+2. **Tier = 运行期能力探测结果，非静态枚举**——owner skill 读 `capabilities()` 决定降级行为，无散落 if-else。
+3. **ACL（DDD）**——宿主词汇（如 ZCode `activeTaskId`）在 adapter 内翻译成 core 统一语言（Task/Status/SessionRef）后才入库。
+4. **adapter = code + skill patch（本域特有）**——执行者是 agent 会话，dispatch 知识一半在端口代码、一半在 owner skill 的 dispatch 章节；每个 HostAdapter 交付端口实现 + skill 补丁段。
+
+模式清单：
+
+| 模式 | 落点 | 解决什么 |
+|---|---|---|
+| Ports & Adapters | 总体 | core 零宿主依赖 |
+| ACL | adapter 翻译层 | 宿主词汇不泄漏进任务库 |
+| ISP + 能力探测 + Null Object | 三端口 + `capabilities()` | 优雅降级 |
+| Strategy | native / cli 两个 DispatchPort 实现 | Tier 2/1 可互换可混用 |
+| Abstract Factory | plugin-creator 清单 | 每宿主装配端口实现 + skill 补丁 |
+| 显式状态机（转移表 + guard） | core `task_update` | 约束集中一处 |
+| Transactional Outbox（简化版） | events 表 | 告警先库后推、幂等 |
+| Facade | 6 个 MCP 工具 | 隐藏存储细节 |
+
+**明确不做**：微内核、通用插件运行时（YAGNI）。端口先以接口 + 文档存在，ZCode 为第一个实现；第二个适配器落地时回头验证抽象边界（rule of two）。
+
 ## 2. ZCode 适配器（首发）
 
 已核实的机制（2026-11-18，ZCode 桌面版）：
