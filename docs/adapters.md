@@ -79,6 +79,24 @@ interface NotifyPort { }                        // 与 HostAdapter 正交的另�
 
 **明确不做**：微内核、通用插件运行时（YAGNI）。端口先以接口 + 文档存在，ZCode 为第一个实现；第二个适配器落地时回头验证抽象边界（rule of two）。
 
+### 1.3 新宿主接入流水线（标准 6 步）
+
+```
+1. Capability Probe（10 分钟）：问 agent "列出你的工具清单" + 查 CLI 形态 → capabilities() 事实依据
+2. 实现 HostAdapter：按探测结果实现端口子集
+   Tier 2 → NativeSessionDispatch + ObservePort(hooks) + surface
+   Tier 1 → CliProcessDispatch（spawn + resume；上下文 = CLI 会话 + git 工作区）
+   Tier 0 → capabilities 全 null，core 自动降级 observe-only
+3. skill patch：dispatch 章节文本，拼进 owner skill
+4. 打包注册：plugin-creator 插件 / 裸 MCP 配置 / npm 包，按宿主生态选
+5. P0 同款探针：建会话 / 推送 / 面板，口径如实标注
+6. 灰度：先 observe-only 跑三天，再开 dispatch
+```
+
+工作量：Tier 1 ≈ 1-2 天（CLI 参数调通 + skill patch）；Tier 2 视宿主 API 文档质量；Tier 0 ≈ 半天。
+
+扩展性四轴（正交）：新宿主 = 新 HostAdapter（core 零改动）；新能力 = 端口可选方法 + capabilities 新字段（向后兼容）；新通道 = ChannelAdapter 族；schema = SQLite 单向 migration + events append-only。扩展性地板：任何 agent 产品零适配即可以 Tier 0 使用登记+盯守+告警（MCP 工具面是稳定 API）。
+
 ## 2. ZCode 适配器（首发）
 
 已核实的机制（2026-11-18，ZCode 桌面版）：
