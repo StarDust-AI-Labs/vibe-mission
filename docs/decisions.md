@@ -19,5 +19,6 @@
 | D13 | 2026-11-20 | **端口化选型**：Ports & Adapters + ISP 三端口（Dispatch/Observe/Notify）+ 能力探测降级 + ACL + adapter=code+skill patch | 用户（专业软件工程师）提出抽象适配问题；Tier 是运行期探测结果非枚举；不做微内核（YAGNI），rule of two | ✅ |
 | D14 | 2026-11-20 | **core 源码定位**：canonical 在顶层 `core/src/`，宿主插件打包时构建复制进插件根（取代先前"实现放插件内"的口径）；**Node 下限上调至 ≥ 23.4.0**（node:sqlite 去旗标版本） | canonical 与宿主解耦更干净，打包复制满足路径约束；node:sqlite 是零依赖存储的唯一选择，代价是 Node 版本下限 | ✅ |
 | D15 | 2026-11-20 | **plugin-creator 对齐**：流程纪律照本地 skill（六步：骨架→清单无占位→校验→市场→手动安装→如实交付）；产物用 **ZCode 风味**（`.zcode-plugin/` + `hooks/hooks.json`），非 Codex 风味（`.codex-plugin`+`~/.agents` 市场+deeplink）。偏差两条：python3 缺失→零依赖 node 校验脚本等价 validate_plugin.py；市场=仓库根 marketplace.json（ZCode UI 机制） | 本机 skill 为 Codex 版；ZCode 三路径探测兼容但字段语义以官方插件为准；python 不可用是环境事实 | ✅ |
+| D16 | 2026-11-20 | **插件加载机制（实证）**：宿主插件注册表在**应用启动时缓存、运行期只读**——用户级 config.json、workspace `.zcode/config.json`、伪造市场记录三种注入均不热生效（三次探针 6/6 缺失）。正确机制=**`plugins.dirs`（inline directories 发现源）**，已配置，待宿主重启生效。**P0-B 结论（先行实测）**：新建子会话遇 Bash 审批 = 阻塞等待（`WaitSessions` 返回 `needs_attention{kind:approval}`），不自动执行/拒绝——① D11 证据：默认行为即"阻塞"，告警策略与其对齐；② owner 可经 WaitSessions 程序化感知"卡审批"，**告警链路无需扩展 API** | 用户要求端到端完成；重启宿主是唯一无法从会话内执行的步骤（会话本身运行在宿主里）；探针会话 3 次 + P0-B 会话 1 次均为自主执行 | ✅（重启后复核） |
 
 待定项随探针回填结论后移入"已定"。
