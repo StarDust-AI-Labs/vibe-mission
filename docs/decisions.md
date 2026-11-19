@@ -17,5 +17,6 @@
 | D11 | 待定 | 权限策略：阻塞告警 vs 全自动+白名单 | 由 P0-B 子会话权限行为实测决定 | ⏳ |
 | D12 | 待定 | 看板默认载体：宿主面板 vs 本地 Web | 由 P0-D 面板渲染实测决定（v1 先按 Web 兜底开发） | ⏳ |
 | D13 | 2026-11-20 | **端口化选型**：Ports & Adapters + ISP 三端口（Dispatch/Observe/Notify）+ 能力探测降级 + ACL + adapter=code+skill patch | 用户（专业软件工程师）提出抽象适配问题；Tier 是运行期探测结果非枚举；不做微内核（YAGNI），rule of two | ✅ |
+| D14 | 2026-11-20 | **core 源码定位**：canonical 在顶层 `core/src/`，宿主插件打包时构建复制进插件根（取代先前"实现放插件内"的口径）；**Node 下限上调至 ≥ 23.4.0**（node:sqlite 去旗标版本） | canonical 与宿主解耦更干净，打包复制满足路径约束；node:sqlite 是零依赖存储的唯一选择，代价是 Node 版本下限 | ✅ |
 
 待定项随探针回填结论后移入"已定"。

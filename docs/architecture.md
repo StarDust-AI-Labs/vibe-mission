@@ -174,7 +174,7 @@ owner skill 内置路由决策树（v1 核心）：
 
 ## 8. 可移植性
 
-- Core：纯 Node ≥ 20，零第三方依赖（SQLite 走 node:sqlite），stdio MCP server。
+- Core：纯 Node（**≥ 23.4.0**，`node:sqlite` 去实验旗标的版本；D14），零第三方依赖（SQLite 走 node:sqlite，stdio JSON-RPC 手写帧）。注意：Node 对 node:sqlite 仍标 experimental，API 稳定前锁 minor 版本。
 - 看板：本地 HTTP 静态页 + JSON API，浏览器打开即用。
 - 部署形态：跟随宿主插件机制安装（ZCode 插件 / Claude Code plugin / 裸 MCP 配置），同一份源码。
 

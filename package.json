@@ -5,7 +5,10 @@
   "description": "Unified task hub for AI coding agents - one store, one board, one alert channel. Host-agnostic, MCP-first.",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=23.4.0"
+  },
+  "scripts": {
+    "test": "node --test \"core/test/*.test.mjs\""
   },
   "repository": {
     "type": "git",

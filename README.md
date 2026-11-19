@@ -32,10 +32,10 @@ Inspired by DeepSeek Harness's open-sourced Super-agent exploration (Router/Work
 ```
 taskpier/
 ├── marketplace.json  Local test marketplace root — add this folder in the ZCode UI to install (planned)
-├── core/             Task store (SQLite) + MCP server design; v1 implementation lives inside the zcode plugin
+├── core/             Task store + MCP server — IMPLEMENTED (src + tests), host-agnostic canonical source
 ├── adapters/         Host adapters: zcode (plugin-creator packaged), claude-code, generic
 ├── board/            Local web dashboard                          (placeholder)
-└── docs/             Architecture, adapter contract, status model, roadmap
+└── docs/             Architecture, adapter contract, status model, owner skill, decisions
 ```
 
 ZCode users: after cloning, the repo root doubles as a plugin marketplace — add it under 插件市场 → 添加 and install `taskpier` from there. Remote users can add it as a `git` marketplace source; no npm required.
