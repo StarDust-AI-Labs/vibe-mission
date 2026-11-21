@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TaskPier 任务看板</title>
+<style>
+  :root { color-scheme: light dark;
+    --bg:#f5f6f8; --card:#ffffff; --ink:#1f2328; --muted:#6b7280; --line:#e6e8ec;
+    --green:#16a34a; --amber:#d97706; --red:#dc2626; --blue:#2563eb; --slate:#64748b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --card:#171a21; --ink:#e6e8ec; --muted:#9aa3af; --line:#2a2f3a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:14px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+  header { padding:18px 22px 8px; display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; }
+  header h1 { font-size:18px; margin:0; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { background:var(--card); border:1px solid var(--line); border-radius:999px;
+          padding:3px 12px; font-size:12px; }
+  .chip b { font-size:14px; }
+  .chip.warn { border-color:var(--amber); color:var(--amber); }
+  .chip.bad  { border-color:var(--red);   color:var(--red); }
+  .meta { margin-left:auto; font-size:12px; color:var(--muted); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+          gap:12px; padding:12px 22px 22px; }
+  .col h2 { font-size:13px; margin:0 0 8px; color:var(--muted); font-weight:600; }
+  .col h2 .n { color:var(--ink); }
+  .col.alert h2 { color:var(--red); }
+  .card { background:var(--card); border:1px solid var(--line); border-left-width:3px;
+          border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .card .id { font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--muted); }
+  .card .title { font-weight:600; margin:2px 0 4px; }
+  .card .why { font-size:12px; color:var(--amber); margin-top:2px; white-space:pre-wrap; }
+  .card .meta2 { font-size:11px; color:var(--muted); margin-top:4px; word-break:break-all; }
+  .card.running { border-left-color:var(--green); }
+  .card.waiting_decision { border-left-color:var(--amber); background:color-mix(in srgb, var(--amber) 7%, var(--card)); }
+  .card.blocked { border-left-color:var(--red); background:color-mix(in srgb, var(--red) 7%, var(--card)); }
+  .card.review { border-left-color:var(--blue); }
+  details.group { padding:0 22px 12px; }
+  details.group summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  details.group .card { margin-top:8px; }
+  .empty { color:var(--muted); font-size:12px; padding:8px 0; }
+  footer { padding:0 22px 20px; font-size:11px; color:var(--muted); }
+  .banner { margin:0 22px 10px; border:1px dashed var(--line); border-radius:8px;
+            padding:8px 12px; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛳️ TaskPier 任务看板</h1>
+  <div class="chips" id="chips"></div>
+  <div class="meta" id="meta"></div>
+</header>
+<div class="banner" id="banner" hidden></div>
+<main class="grid" id="grid"></main>
+<section>
+  <details class="group" id="g-todo"><summary>待派 / 收件箱 (<span class="c"></span>)</summary><div></div></details>
+  <details class="group" id="g-done"><summary>完成 (<span class="c"></span>)</summary><div></div></details>
+  <details class="group" id="g-dead"><summary>失败 / 已取消 (<span class="c"></span>)</summary><div></div></details>
+</section>
+<footer>TaskPier · 数据源：本机任务库 · <span id="footmode"></span></footer>
+
+<script>window.__TASKPIER_BOOT__=/*__BOOT__*/null;</script>
+<script>
+const boot = window.__TASKPIER_BOOT__;
+const isSnap = boot && boot.mode === 'snapshot';
+const ALERT = new Set(['waiting_decision','blocked','review']);
+const LABEL = { running:'执行中', waiting_decision:'待决策', blocked:'阻塞', review:'待验收',
+                todo:'待派', inbox:'收件箱', done:'完成', failed:'失败', cancelled:'已取消' };
+const PRIMARY = ['running','waiting_decision','blocked','review'];
+
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtTime(iso){ try { return new Date(iso).toLocaleString('zh-CN', {hour12:false}); } catch { return iso; } }
+
+function card(t){
+  const bits = [t.host, t.project, t.workspace].filter(Boolean).map(esc).join(' · ');
+  const why = t.blocked_reason ? `<div class="why">⛔ ${esc(t.blocked_reason)}</div>`
+            : t.decision_question ? `<div class="why">❓ ${esc(t.decision_question)}</div>` : '';
+  return `<div class="card ${esc(t.status)}">
+    <span class="id">${esc(t.displayId)}</span>
+    <div class="title">${esc(t.title)}</div>
+    ${why}
+    <div class="meta2">${bits}${bits?' · ':''}更新 ${esc(fmtTime(t.updatedAt))}</div>
+  </div>`;
+}
+
+function render(d){
+  const chips = [['执行中',d.counts.running],['待决策',d.counts.waiting_decision,'warn'],
+                 ['阻塞',d.counts.blocked,'bad'],['待验收',d.counts.review]];
+  document.getElementById('chips').innerHTML =
+    chips.map(([l,v,c])=>`<span class="chip ${c||''}">${l} <b>${v}</b></span>`).join('');
+  document.getElementById('meta').textContent =
+    (isSnap ? '快照生成于 ' : '实时 · 刷新于 ') + fmtTime(d.generatedAt) + (d.needsAttention ? ` · 需要你关注 ${d.needsAttention} 项` : '');
+
+  document.getElementById('grid').innerHTML = PRIMARY.map(s => {
+    const list = d.columns[s] || [];
+    return `<div class="col ${ALERT.has(s)?'alert':''}"><h2>${LABEL[s]} <span class="n">${list.length}</span></h2>
+      ${list.length ? list.map(card).join('') : '<div class="empty">空</div>'}</div>`;
+  }).join('');
+
+  const groups = [ ['g-todo',['todo','inbox']], ['g-done',['done']], ['g-dead',['failed','cancelled']] ];
+  for (const [gid, sts] of groups) {
+    const el = document.getElementById(gid);
+    const list = sts.flatMap(s => d.columns[s] || []);
+    el.querySelector('.c').textContent = list.length;
+    el.querySelector('div').innerHTML = list.length ? list.map(card).join('') : '<div class="empty">空</div>';
+  }
+}
+
+if (isSnap) {
+  document.getElementById('banner').hidden = false;
+  document.getElementById('banner').textContent =
+    '⏱ 快照模式：本页为 ' + fmtTime(boot.data.generatedAt) + ' 的状态快照，非实时。实时看板请在本机运行 TaskPier board 服务。';
+  document.getElementById('footmode').textContent = '快照发布（ZCode Sites）';
+  render(boot.data);
+} else {
+  document.getElementById('footmode').textContent = '本地实时 · 每 8 秒自动刷新';
+  async function load(){
+    try { const r = await fetch('/api/board'); if (r.ok) render(await r.json()); } catch {}
+  }
+  load(); setInterval(load, 8000);
+}
+</script>
+</body>
+</html>

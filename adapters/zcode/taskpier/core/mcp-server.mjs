@@ -11,6 +11,7 @@
 
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
+import { resolveDbPath } from './dbpath.mjs';
 import { openStore } from './store.mjs';
 import { buildTools } from './tools.mjs';
 import { TaskPierError } from './errors.mjs';
@@ -18,16 +19,6 @@ import { TaskPierError } from './errors.mjs';
 const SERVER_INFO = { name: 'taskpier-core', version: '0.1.0' };
 const DEFAULT_PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(['2025-06-18', '2025-11-25']);
-
-/** Shared with hook glue so every process resolves the same store. */
-export function resolveDbPath(argv = []) {
-  const flagIdx = argv.indexOf('--db');
-  if (flagIdx !== -1 && argv[flagIdx + 1]) return argv[flagIdx + 1];
-  if (process.env.TASKPIER_DB_PATH) return process.env.TASKPIER_DB_PATH;
-  if (process.env.TASKPIER_PLUGIN_DATA) return `${process.env.TASKPIER_PLUGIN_DATA}/taskpier.sqlite`;
-  if (process.env.ZCODE_PLUGIN_DATA) return `${process.env.ZCODE_PLUGIN_DATA}/taskpier.sqlite`;
-  return './taskpier.sqlite';
-}
 
 /** Build the JSON-RPC method router against a store. */
 export function createRouter(store) {

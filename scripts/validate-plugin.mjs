@@ -99,7 +99,7 @@ try {
 }
 
 // 6. core freshness (hash compare)
-for (const f of ['errors', 'state-machine', 'store', 'tools', 'mcp-server']) {
+for (const f of ['errors', 'dbpath', 'state-machine', 'store', 'tools', 'mcp-server']) {
   const src = readFileSync(join(repoRoot, 'core', 'src', `${f}.mjs`));
   const dstPath = join(pluginRoot, 'core', `${f}.mjs`);
   if (!existsSync(dstPath)) { fail(`bundled core missing: core/${f}.mjs (run scripts/sync-core.mjs)`); continue; }

@@ -24,3 +24,7 @@ npm-debug.log*
 # Editor
 .idea/
 .vscode/
+
+# local dev db & ZCode Sites stage
+.taskpier/
+.zcode-site/
