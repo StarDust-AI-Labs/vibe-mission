@@ -5,102 +5,111 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TaskPier 任务看板 · 港务调度</title>
 <style>
-  /* ---- tokens: 海雾夜航 / 海雾白昼 ---- */
+  /* ---- tokens: 海雾夜航 / 海雾白昼（D18 延续，容器扁平化） ---- */
   :root {
     color-scheme: light dark;
-    --bg:#E8EEF3; --surface:#F7FAFC; --surface2:#FFFFFF;
+    --bg:#E8EEF3; --card:#FFFFFF; --card2:#FBFDFE;
     --ink:#16212E; --muted:#5B7086; --line:#D5DFE8;
     --brand:#FF7A1A;
-    --lamp-run:#1FA971; --lamp-dec:#C77F00; --lamp-blk:#D94848; --lamp-rev:#2B7FD4;
-    --shadow:0 1px 2px rgba(22,33,46,.06), 0 4px 14px rgba(22,33,46,.06);
+    --run:#1FA971; --dec:#C77F00; --blk:#D94848; --rev:#2B7FD4;
+    --shadow:0 1px 2px rgba(22,33,46,.06), 0 4px 14px rgba(22,33,46,.05);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg:#0C1420; --surface:#121D2B; --surface2:#182433;
+      --bg:#0C1420; --card:#141F2E; --card2:#18253A;
       --ink:#DCE8F2; --muted:#7E93A8; --line:#24344A;
-      --lamp-run:#3ECF8E; --lamp-dec:#FFB020; --lamp-blk:#FF5C5C; --lamp-rev:#4DA3FF;
-      --shadow:0 1px 2px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.25);
+      --run:#3ECF8E; --dec:#FFB020; --blk:#FF5C5C; --rev:#4DA3FF;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 16px rgba(0,0,0,.22);
     }
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
-    font:15px/1.55 "PingFang SC","MiSans","Microsoft YaHei",system-ui,sans-serif; }
+    font:15px/1.6 "PingFang SC","MiSans","Microsoft YaHei",system-ui,sans-serif; }
   .mono { font-family:ui-monospace,"JetBrains Mono","Cascadia Code",Consolas,monospace; }
+  .wrap { max-width:860px; margin:0 auto; padding:0 20px; }
 
   /* ---- header + lamp strip (signature) ---- */
-  header { padding:20px 26px 0; display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  header { padding:22px 0 6px; }
+  .head-row { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
   .brand { display:flex; align-items:center; gap:10px; }
-  .brand .dot { width:10px; height:10px; border-radius:50%; background:var(--brand);
-    box-shadow:0 0 8px var(--brand); }
+  .brand .dot { width:10px; height:10px; border-radius:50%; background:var(--brand); box-shadow:0 0 8px var(--brand); }
   .brand b { font-size:17px; letter-spacing:.5px; }
   .brand span { color:var(--muted); font-size:13px; }
-  .lamps { display:flex; gap:10px; margin-left:6px; flex-wrap:wrap; }
-  .lamp { display:flex; align-items:center; gap:8px; background:var(--surface);
-    border:1px solid var(--line); border-radius:10px; padding:7px 14px 7px 10px; }
-  .lamp .bulb { width:12px; height:12px; border-radius:50%; background:var(--line);
-    border:2px solid var(--line); transition:all .3s; }
-  .lamp .v { font-size:20px; font-weight:700; min-width:22px; text-align:center; }
-  .lamp .l { font-size:12px; color:var(--muted); }
-  .lamp.on .bulb { border-color:transparent; }
-  .lamp.on.run  .bulb { background:var(--lamp-run); box-shadow:0 0 10px var(--lamp-run); }
-  .lamp.on.dec  .bulb { background:var(--lamp-dec); box-shadow:0 0 10px var(--lamp-dec); }
-  .lamp.on.blk  .bulb { background:var(--lamp-blk); box-shadow:0 0 10px var(--lamp-blk); }
-  .lamp.on.rev  .bulb { background:var(--lamp-rev); box-shadow:0 0 10px var(--lamp-rev); }
-  .lamp.on .v { color:var(--ink); }
+  .meta { margin-left:auto; text-align:right; font-size:12px; color:var(--muted); }
+  .meta .mode { display:inline-block; border:1px solid var(--line); border-radius:6px; padding:1px 8px; margin-bottom:3px; }
+  .lamps { display:flex; gap:10px; flex-wrap:wrap; padding:10px 0 4px; }
+  .lamp { display:flex; align-items:center; gap:9px; background:var(--card);
+    border:1px solid var(--line); border-radius:12px; padding:8px 16px 8px 12px; box-shadow:var(--shadow); }
+  .lamp .bulb { width:12px; height:12px; border-radius:50%; background:var(--line); }
+  .lamp .v { font-size:22px; font-weight:700; min-width:24px; text-align:center; }
+  .lamp .l { font-size:12.5px; color:var(--muted); }
+  .lamp.on.run .bulb { background:var(--run); box-shadow:0 0 10px var(--run); }
+  .lamp.on.dec .bulb { background:var(--dec); box-shadow:0 0 10px var(--dec); }
+  .lamp.on.blk .bulb { background:var(--blk); box-shadow:0 0 10px var(--blk); }
+  .lamp.on.rev .bulb { background:var(--rev); box-shadow:0 0 10px var(--rev); }
   .lamp.off .v { color:var(--muted); }
   @media (prefers-reduced-motion: no-preference) {
     .lamp.on.dec .bulb, .lamp.on.blk .bulb { animation:breathe 2.4s ease-in-out infinite; }
-    .card { animation:fadeIn .25s ease-out; }
+    .task, .row { animation:fadeIn .22s ease-out; }
   }
-  @keyframes breathe { 50% { opacity:.55; box-shadow:0 0 16px 3px currentColor; } }
-  .meta { margin-left:auto; text-align:right; font-size:12px; color:var(--muted); }
-  .meta .mode { display:inline-block; border:1px solid var(--line); border-radius:6px;
-    padding:1px 8px; margin-bottom:3px; }
+  @keyframes breathe { 50% { opacity:.5; box-shadow:0 0 16px 3px currentColor; } }
+  @keyframes fadeIn { from { opacity:0; } }
 
-  /* ---- alert banner ---- */
-  .banner { margin:14px 26px 0; border:1px solid var(--line); border-left:3px solid var(--brand);
-    border-radius:10px; background:var(--surface); padding:10px 14px; font-size:13px; color:var(--muted); }
+  /* ---- calm / all-clear state ---- */
+  .calm { border:1px solid var(--line); border-radius:14px; background:var(--card);
+    padding:22px 24px; margin:18px 0 10px; display:flex; align-items:center; gap:14px; }
+  .calm .bulb { width:14px; height:14px; border-radius:50%; background:var(--run);
+    box-shadow:0 0 12px var(--run); flex:none; }
+  .calm b { font-size:15px; }
+  .calm span { color:var(--muted); font-size:13px; display:block; }
 
-  /* ---- columns ---- */
-  .grid { display:grid; grid-template-columns:repeat(4,minmax(220px,1fr));
-    gap:14px; padding:16px 26px 6px; }
-  @media (max-width: 900px) { .grid { grid-template-columns:1fr; } .lamps { width:100%; } }
-  .col { background:var(--surface); border:1px solid var(--line); border-radius:12px;
-    padding:12px; box-shadow:var(--shadow); min-height:120px; }
-  .col-head { display:flex; align-items:center; gap:8px; padding:2px 4px 10px;
-    border-bottom:1px solid var(--line); margin-bottom:10px; }
-  .col-head .bulb { width:9px; height:9px; border-radius:50%; }
-  .col-head b { font-size:14px; }
-  .col-head .n { margin-left:auto; font-size:13px; color:var(--muted); }
-  .col.run  .col-head .bulb { background:var(--lamp-run); }
-  .col.dec  .col-head .bulb { background:var(--lamp-dec); }
-  .col.blk  .col-head .bulb { background:var(--lamp-blk); }
-  .col.rev  .col-head .bulb { background:var(--lamp-rev); }
-  .card { background:var(--surface2); border:1px solid var(--line); border-radius:10px;
-    padding:10px 12px; margin-bottom:10px; box-shadow:var(--shadow); }
-  .card:last-child { margin-bottom:2px; }
-  .card .top { display:flex; align-items:center; gap:8px; }
-  .card .id { font-size:12px; color:var(--muted); }
-  .pill { font-size:11px; padding:1px 8px; border-radius:999px; border:1px solid; }
-  .pill.run  { color:var(--lamp-run); border-color:var(--lamp-run); }
-  .pill.dec  { color:var(--lamp-dec); border-color:var(--lamp-dec); }
-  .pill.blk  { color:var(--lamp-blk); border-color:var(--lamp-blk); }
-  .pill.rev  { color:var(--lamp-rev); border-color:var(--lamp-rev); }
-  .pill.dim  { color:var(--muted); border-color:var(--line); }
-  .card .title { font-size:14px; font-weight:600; margin:6px 0 2px; line-height:1.45; }
-  .card .why { font-size:12.5px; margin:6px 0 0; padding:7px 10px; border-radius:8px;
-    background:var(--bg); white-space:pre-wrap; }
-  .card .why.why-blk { border-left:3px solid var(--lamp-blk); }
-  .card .why.why-dec { border-left:3px solid var(--lamp-dec); }
-  .card .meta2 { font-size:11.5px; color:var(--muted); margin-top:7px; word-break:break-all;
-    display:flex; flex-wrap:wrap; gap:4px 10px; }
-  .empty { font-size:12.5px; color:var(--muted); padding:14px 4px; }
+  /* ---- sections ---- */
+  section.band { margin:22px 0 8px; }
+  .band-head { display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
+  .band-head h2 { font-size:16px; margin:0; }
+  .band-head .n { font-size:15px; color:var(--muted); }
+  .band-head .hint { margin-left:auto; font-size:12.5px; color:var(--muted); }
+  .sub { font-size:12.5px; color:var(--muted); margin:14px 0 8px; display:flex; align-items:center; gap:7px; }
+  .sub .d { width:8px; height:8px; border-radius:50%; flex:none; }
+
+  /* ---- attention task card ---- */
+  .task { background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px 18px; margin-bottom:10px; box-shadow:var(--shadow); }
+  .task .top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .task .id { font-size:12.5px; color:var(--muted); }
+  .pill { font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px; }
+  .pill.dec { color:var(--dec); background:color-mix(in srgb, var(--dec) 12%, transparent); }
+  .pill.blk { color:var(--blk); background:color-mix(in srgb, var(--blk) 12%, transparent); }
+  .pill.rev { color:var(--rev); background:color-mix(in srgb, var(--rev) 12%, transparent); }
+  .pill.run { color:var(--run); background:color-mix(in srgb, var(--run) 12%, transparent); }
+  .pill.dim { color:var(--muted); background:color-mix(in srgb, var(--muted) 10%, transparent); }
+  .task .when { margin-left:auto; font-size:12px; color:var(--muted); }
+  .task h3 { font-size:16px; font-weight:650; margin:8px 0 0; line-height:1.5; }
+  .task .why { font-size:13.5px; margin:10px 0 0; padding:10px 14px; border-radius:10px;
+    background:var(--card2); border-left:3px solid var(--line); white-space:pre-wrap; }
+  .task.dec .why { border-left-color:var(--dec); }
+  .task.blk .why { border-left-color:var(--blk); }
+  .task .act { font-size:13.5px; margin:10px 0 0; padding:10px 14px; border-radius:10px;
+    background:color-mix(in srgb, var(--brand) 8%, var(--card));
+    border-left:3px solid var(--brand); }
+  .task .act b { color:var(--brand); }
+  .task .meta2 { font-size:12px; color:var(--muted); margin-top:9px; word-break:break-all;
+    display:flex; flex-wrap:wrap; gap:4px 12px; }
+
+  /* ---- running rows ---- */
+  .row { background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:10px 16px; margin-bottom:8px; box-shadow:var(--shadow);
+    display:flex; align-items:center; gap:12px; }
+  .row .bulb { width:9px; height:9px; border-radius:50%; background:var(--run);
+    box-shadow:0 0 8px var(--run); flex:none; }
+  .row .id { font-size:12px; color:var(--muted); flex:none; }
+  .row .title { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .when { font-size:12px; color:var(--muted); flex:none; }
 
   /* ---- collapsed groups ---- */
-  .groups { padding:8px 26px 4px; display:grid; gap:8px; }
-  details.group { background:var(--surface); border:1px solid var(--line); border-radius:12px;
-    padding:10px 14px; }
-  details.group summary { cursor:pointer; color:var(--muted); font-size:13px;
+  .groups { margin:6px 0 0; display:grid; gap:8px; }
+  details.group { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 16px; }
+  details.group summary { cursor:pointer; color:var(--muted); font-size:13.5px;
     display:flex; align-items:center; gap:8px; list-style:none; }
   details.group summary::-webkit-details-marker { display:none; }
   details.group summary .n { font-weight:700; color:var(--ink); }
@@ -108,22 +117,39 @@
   details.group[open] summary::after { content:"收起"; }
   details.group .wrap { margin-top:10px; }
 
-  footer { padding:14px 26px 22px; font-size:12px; color:var(--muted);
-    display:flex; gap:14px; flex-wrap:wrap; }
+  .empty { font-size:13px; color:var(--muted); padding:10px 2px; }
+  footer { padding:18px 0 26px; font-size:12px; color:var(--muted); display:flex; gap:14px; flex-wrap:wrap; }
   a { color:var(--brand); text-decoration:none; }
   a:focus-visible, summary:focus-visible { outline:2px solid var(--brand); outline-offset:2px; border-radius:4px; }
+  @media (max-width: 640px) { .task .when { margin-left:0; width:100%; } .row .when { display:none; } }
 </style>
 </head>
 <body>
+<div class="wrap">
 <header>
-  <div class="brand"><span class="dot"></span><b>TaskPier</b><span>任务看板 · 港务调度</span></div>
+  <div class="head-row">
+    <div class="brand"><span class="dot"></span><b>TaskPier</b><span>任务看板 · 港务调度</span></div>
+    <div class="meta"><span class="mode" id="modeTag">实时</span><br><span class="mono" id="stamp"></span></div>
+  </div>
   <div class="lamps" id="lamps"></div>
-  <div class="meta"><span class="mode" id="modeTag">实时</span><br><span class="mono" id="stamp"></span></div>
 </header>
 
-<div class="banner" id="banner" hidden></div>
+<div class="calm" id="calm" hidden>
+  <span class="bulb"></span>
+  <div><b>港湾平静</b><span id="calmDetail"></span></div>
+</div>
 
-<main class="grid" id="grid" aria-label="需要关注的四个状态"></main>
+<section class="band" id="band-attention" aria-label="需要你处理">
+  <div class="band-head"><h2>需要你处理</h2><span class="n" id="attN"></span>
+    <span class="hint">拍板 · 解除阻塞 · 验收</span></div>
+  <div id="attSubs"></div>
+</section>
+
+<section class="band" id="band-running" aria-label="执行中">
+  <div class="band-head"><h2>执行中</h2><span class="n" id="runN"></span>
+    <span class="hint">由任务会话处理中，无需你操作</span></div>
+  <div id="runRows"></div>
+</section>
 
 <section class="groups">
   <details class="group" id="g-todo"><summary>🗓 待派 / 收件箱 <span class="n">0</span></summary><div class="wrap"></div></details>
@@ -132,82 +158,116 @@
 </section>
 
 <footer>
-  <span>数据源：本机任务库</span><span id="footmode"></span>
+  <span>数据源：本机任务库</span><span id="footmode"></span><a id="boardLink" href="/" hidden>打开实时看板</a>
 </footer>
+</div>
 
 <script>window.__TASKPIER_BOOT__=/*__BOOT__*/null;</script>
 <script>
 const boot = window.__TASKPIER_BOOT__;
 const isSnap = !!(boot && boot.mode === 'snapshot');
-const ALERT = new Set(['waiting_decision','blocked','review']);
+const ALERT_SUBS = [
+  ['waiting_decision','dec','❓ 待你拍板'],
+  ['blocked','blk','⛔ 阻塞'],
+  ['review','rev','✅ 待验收'],
+];
 const LABEL = { running:'执行中', waiting_decision:'待决策', blocked:'阻塞', review:'待验收',
                 todo:'待派', inbox:'收件箱', done:'完成', failed:'失败', cancelled:'已取消' };
-const PILL  = { running:'run', waiting_decision:'dec', blocked:'blk', review:'rev',
-                todo:'dim', inbox:'dim', done:'dim', failed:'dim', cancelled:'dim' };
-const PRIMARY = ['running','waiting_decision','blocked','review'];
-const LAMP = { running:['run','执行中'], waiting_decision:['dec','待决策'],
-               blocked:['blk','阻塞'], review:['rev','待验收'] };
 
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmtTime(iso){ try { return new Date(iso).toLocaleString('zh-CN',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch { return iso; } }
 
+function actionLine(t){
+  if (t.status === 'waiting_decision') {
+    const opts = Array.isArray(t.decision_options) ? t.decision_options : [];
+    return opts.length ? `👉 回复选项文字即可：${opts.map(esc).join(' / ')}` : '👉 直接回复你的决定';
+  }
+  if (t.status === 'blocked') {
+    return `👉 到 ZCode 解除阻塞${t.displayId ? `，或回复「取消 ${t.displayId}」` : ''}`;
+  }
+  if (t.status === 'review') {
+    return `👉 回复「<b>通过 ${esc(t.displayId)}</b>」完成验收，或「打回」附意见`;
+  }
+  return '';
+}
+
+function attentionCard(t, cls, glyph){
+  const bits = [t.host, t.project, t.workspace].filter(Boolean).map(esc).join(' · ');
+  return `<article class="task ${cls}">
+    <div class="top"><span class="id mono">${esc(t.displayId)}</span>
+      <span class="pill ${cls}">${glyph} ${LABEL[t.status]}</span>
+      <span class="when">更新 ${esc(fmtTime(t.updatedAt))}</span></div>
+    <h3>${esc(t.title)}</h3>
+    ${t.blocked_reason ? `<div class="why">原因：${esc(t.blocked_reason)}</div>` : ''}
+    ${t.decision_question ? `<div class="why">问题：${esc(t.decision_question)}</div>` : ''}
+    <div class="act">${actionLine(t)}</div>
+    ${bits ? `<div class="meta2"><span>${bits}</span></div>` : ''}
+  </article>`;
+}
+
+function row(t){
+  return `<div class="row"><span class="bulb"></span>
+    <span class="id mono">${esc(t.displayId)}</span>
+    <span class="title">${esc(t.title)}</span>
+    <span class="when mono">更新 ${esc(fmtTime(t.updatedAt))}</span></div>`;
+}
+
 function render(d){
   // lamp strip
-  document.getElementById('lamps').innerHTML = PRIMARY.map(([s,[cls,label]]) => {
+  const LAMP = { running:['run','执行中'], waiting_decision:['dec','待决策'],
+                 blocked:['blk','阻塞'], review:['rev','待验收'] };
+  document.getElementById('lamps').innerHTML = Object.entries(LAMP).map(([s,[cls,label]]) => {
     const n = d.counts[s] || 0, on = n > 0;
-    return `<div class="lamp ${cls} ${on?'on':'off'}" title="${label}：${n}">
-      <span class="bulb"></span><span class="v">${n}</span><span class="l">${label}</span></div>`;
+    return `<div class="lamp ${cls} ${on?'on':'off'}"><span class="bulb"></span>
+      <span class="v">${n}</span><span class="l">${label}</span></div>`;
   }).join('');
   document.getElementById('stamp').textContent = fmtTime(d.generatedAt);
 
-  // four primary berths
-  document.getElementById('grid').innerHTML = PRIMARY.map(s => {
-    const [cls,label] = LAMP[s];
+  // attention band
+  const att = ALERT_SUBS.flatMap(([s, cls, glyph]) => (d.columns[s] || []).map(t => ({ t, cls, glyph })));
+  const attN = d.counts.waiting_decision + d.counts.blocked + d.counts.review;
+  document.getElementById('attN').textContent = attN;
+  document.getElementById('band-attention').style.display = attN ? '' : 'none';
+
+  const calm = document.getElementById('calm');
+  if (!attN) {
+    calm.hidden = false;
+    document.getElementById('calmDetail').textContent =
+      `没有任务等你处理。执行中 ${d.counts.running} 条${d.counts.todo ? `，待派 ${d.counts.todo} 条` : ''}。`;
+  } else {
+    calm.hidden = true;
+  }
+  document.getElementById('attSubs').innerHTML = attN ? ALERT_SUBS.map(([s, cls, glyph]) => {
     const list = d.columns[s] || [];
-    return `<section class="col ${cls.slice(0,3)}" aria-label="${label}">
-      <div class="col-head"><span class="bulb"></span><b>${label}</b><span class="n mono">${list.length}</span></div>
-      ${list.length ? list.map(card).join('') : '<div class="empty">泊位空闲，暂无任务</div>'}
-    </section>`;
-  }).join('');
+    return list.length ? `<div class="sub"><span class="d" style="background:var(--${cls})"></span>${glyph.replace(/[❓⛔✅] /,'')}（${list.length}）</div>
+      ${list.map(t => attentionCard(t, cls, glyph.split(' ')[0])).join('')}` : '';
+  }).join('') : '';
+
+  // running band
+  const running = d.columns.running || [];
+  document.getElementById('runN').textContent = running.length;
+  document.getElementById('runRows').innerHTML = running.length
+    ? running.map(row).join('') : '<div class="empty">当前没有执行中的任务</div>';
 
   // collapsed groups
-  const groups = [ ['g-todo',['todo','inbox'],'待派 / 收件箱'],
-                   ['g-done',['done'],'已完成'],
-                   ['g-dead',['failed','cancelled'],'失败 / 已取消'] ];
+  const groups = [ ['g-todo',['todo','inbox']], ['g-done',['done']], ['g-dead',['failed','cancelled']] ];
   for (const [gid, sts] of groups) {
     const el = document.getElementById(gid);
     const list = sts.flatMap(s => d.columns[s] || []);
     el.querySelector('.n').textContent = list.length;
-    el.querySelector('.wrap').innerHTML = list.length ? list.map(card).join('')
-      : '<div class="empty">暂无记录</div>';
+    el.querySelector('.wrap').innerHTML = list.length ? list.map(row).join('') : '<div class="empty">暂无记录</div>';
   }
-}
-
-function card(t){
-  const bits = [t.host, t.project, t.workspace].filter(Boolean).map(esc).join(' · ');
-  const why = t.blocked_reason
-      ? `<div class="why why-blk">⛔ ${esc(t.blocked_reason)}</div>`
-      : t.decision_question
-      ? `<div class="why why-dec">❓ ${esc(t.decision_question)}</div>` : '';
-  return `<article class="card">
-    <div class="top"><span class="id mono">${esc(t.displayId)}</span>
-      <span class="pill ${PILL[t.status]||'dim'}">${LABEL[t.status]||t.status}</span></div>
-    <div class="title">${esc(t.title)}</div>
-    ${why}
-    <div class="meta2">${bits?`<span>${bits}</span>`:''}<span>更新 ${esc(fmtTime(t.updatedAt))}</span></div>
-  </article>`;
 }
 
 if (isSnap) {
   document.getElementById('modeTag').textContent = '快照';
   const b = document.getElementById('banner');
-  b.hidden = false;
-  b.textContent = '⏱ 本页是 ' + fmtTime(boot.data.generatedAt) + ' 的状态快照，非实时；数据变化后由负责人重新发布。实时看板请在本机运行 TaskPier board 服务。';
-  document.getElementById('footmode').textContent = '快照发布（ZCode Sites）';
+  if (b) { b.hidden = false; }
+  document.getElementById('footmode').innerHTML =
+    '⏱ 快照生成于 ' + fmtTime(boot.data.generatedAt) + '，非实时 · 数据变化后由负责人重新发布 · <span id="boardLink"></span>';
   render(boot.data);
 } else {
-  document.getElementById('modeTag').textContent = '实时';
-  document.getElementById('footmode').textContent = '每 8 秒自动刷新';
+  document.getElementById('footmode').textContent = '本地实时 · 每 8 秒自动刷新';
   async function load(){
     try { const r = await fetch('/api/board'); if (r.ok) render(await r.json()); } catch {}
   }
