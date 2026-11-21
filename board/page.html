@@ -3,121 +3,211 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TaskPier 任务看板</title>
+<title>TaskPier 任务看板 · 港务调度</title>
 <style>
-  :root { color-scheme: light dark;
-    --bg:#f5f6f8; --card:#ffffff; --ink:#1f2328; --muted:#6b7280; --line:#e6e8ec;
-    --green:#16a34a; --amber:#d97706; --red:#dc2626; --blue:#2563eb; --slate:#64748b;
+  /* ---- tokens: 海雾夜航 / 海雾白昼 ---- */
+  :root {
+    color-scheme: light dark;
+    --bg:#E8EEF3; --surface:#F7FAFC; --surface2:#FFFFFF;
+    --ink:#16212E; --muted:#5B7086; --line:#D5DFE8;
+    --brand:#FF7A1A;
+    --lamp-run:#1FA971; --lamp-dec:#C77F00; --lamp-blk:#D94848; --lamp-rev:#2B7FD4;
+    --shadow:0 1px 2px rgba(22,33,46,.06), 0 4px 14px rgba(22,33,46,.06);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0f1115; --card:#171a21; --ink:#e6e8ec; --muted:#9aa3af; --line:#2a2f3a; }
+    :root {
+      --bg:#0C1420; --surface:#121D2B; --surface2:#182433;
+      --ink:#DCE8F2; --muted:#7E93A8; --line:#24344A;
+      --lamp-run:#3ECF8E; --lamp-dec:#FFB020; --lamp-blk:#FF5C5C; --lamp-rev:#4DA3FF;
+      --shadow:0 1px 2px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.25);
+    }
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
-         font:14px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
-  header { padding:18px 22px 8px; display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; }
-  header h1 { font-size:18px; margin:0; }
-  .chips { display:flex; gap:8px; flex-wrap:wrap; }
-  .chip { background:var(--card); border:1px solid var(--line); border-radius:999px;
-          padding:3px 12px; font-size:12px; }
-  .chip b { font-size:14px; }
-  .chip.warn { border-color:var(--amber); color:var(--amber); }
-  .chip.bad  { border-color:var(--red);   color:var(--red); }
-  .meta { margin-left:auto; font-size:12px; color:var(--muted); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-          gap:12px; padding:12px 22px 22px; }
-  .col h2 { font-size:13px; margin:0 0 8px; color:var(--muted); font-weight:600; }
-  .col h2 .n { color:var(--ink); }
-  .col.alert h2 { color:var(--red); }
-  .card { background:var(--card); border:1px solid var(--line); border-left-width:3px;
-          border-radius:8px; padding:10px 12px; margin-bottom:8px; }
-  .card .id { font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--muted); }
-  .card .title { font-weight:600; margin:2px 0 4px; }
-  .card .why { font-size:12px; color:var(--amber); margin-top:2px; white-space:pre-wrap; }
-  .card .meta2 { font-size:11px; color:var(--muted); margin-top:4px; word-break:break-all; }
-  .card.running { border-left-color:var(--green); }
-  .card.waiting_decision { border-left-color:var(--amber); background:color-mix(in srgb, var(--amber) 7%, var(--card)); }
-  .card.blocked { border-left-color:var(--red); background:color-mix(in srgb, var(--red) 7%, var(--card)); }
-  .card.review { border-left-color:var(--blue); }
-  details.group { padding:0 22px 12px; }
-  details.group summary { cursor:pointer; color:var(--muted); font-size:13px; }
-  details.group .card { margin-top:8px; }
-  .empty { color:var(--muted); font-size:12px; padding:8px 0; }
-  footer { padding:0 22px 20px; font-size:11px; color:var(--muted); }
-  .banner { margin:0 22px 10px; border:1px dashed var(--line); border-radius:8px;
-            padding:8px 12px; font-size:12px; color:var(--muted); }
+    font:15px/1.55 "PingFang SC","MiSans","Microsoft YaHei",system-ui,sans-serif; }
+  .mono { font-family:ui-monospace,"JetBrains Mono","Cascadia Code",Consolas,monospace; }
+
+  /* ---- header + lamp strip (signature) ---- */
+  header { padding:20px 26px 0; display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand .dot { width:10px; height:10px; border-radius:50%; background:var(--brand);
+    box-shadow:0 0 8px var(--brand); }
+  .brand b { font-size:17px; letter-spacing:.5px; }
+  .brand span { color:var(--muted); font-size:13px; }
+  .lamps { display:flex; gap:10px; margin-left:6px; flex-wrap:wrap; }
+  .lamp { display:flex; align-items:center; gap:8px; background:var(--surface);
+    border:1px solid var(--line); border-radius:10px; padding:7px 14px 7px 10px; }
+  .lamp .bulb { width:12px; height:12px; border-radius:50%; background:var(--line);
+    border:2px solid var(--line); transition:all .3s; }
+  .lamp .v { font-size:20px; font-weight:700; min-width:22px; text-align:center; }
+  .lamp .l { font-size:12px; color:var(--muted); }
+  .lamp.on .bulb { border-color:transparent; }
+  .lamp.on.run  .bulb { background:var(--lamp-run); box-shadow:0 0 10px var(--lamp-run); }
+  .lamp.on.dec  .bulb { background:var(--lamp-dec); box-shadow:0 0 10px var(--lamp-dec); }
+  .lamp.on.blk  .bulb { background:var(--lamp-blk); box-shadow:0 0 10px var(--lamp-blk); }
+  .lamp.on.rev  .bulb { background:var(--lamp-rev); box-shadow:0 0 10px var(--lamp-rev); }
+  .lamp.on .v { color:var(--ink); }
+  .lamp.off .v { color:var(--muted); }
+  @media (prefers-reduced-motion: no-preference) {
+    .lamp.on.dec .bulb, .lamp.on.blk .bulb { animation:breathe 2.4s ease-in-out infinite; }
+    .card { animation:fadeIn .25s ease-out; }
+  }
+  @keyframes breathe { 50% { opacity:.55; box-shadow:0 0 16px 3px currentColor; } }
+  .meta { margin-left:auto; text-align:right; font-size:12px; color:var(--muted); }
+  .meta .mode { display:inline-block; border:1px solid var(--line); border-radius:6px;
+    padding:1px 8px; margin-bottom:3px; }
+
+  /* ---- alert banner ---- */
+  .banner { margin:14px 26px 0; border:1px solid var(--line); border-left:3px solid var(--brand);
+    border-radius:10px; background:var(--surface); padding:10px 14px; font-size:13px; color:var(--muted); }
+
+  /* ---- columns ---- */
+  .grid { display:grid; grid-template-columns:repeat(4,minmax(220px,1fr));
+    gap:14px; padding:16px 26px 6px; }
+  @media (max-width: 900px) { .grid { grid-template-columns:1fr; } .lamps { width:100%; } }
+  .col { background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:12px; box-shadow:var(--shadow); min-height:120px; }
+  .col-head { display:flex; align-items:center; gap:8px; padding:2px 4px 10px;
+    border-bottom:1px solid var(--line); margin-bottom:10px; }
+  .col-head .bulb { width:9px; height:9px; border-radius:50%; }
+  .col-head b { font-size:14px; }
+  .col-head .n { margin-left:auto; font-size:13px; color:var(--muted); }
+  .col.run  .col-head .bulb { background:var(--lamp-run); }
+  .col.dec  .col-head .bulb { background:var(--lamp-dec); }
+  .col.blk  .col-head .bulb { background:var(--lamp-blk); }
+  .col.rev  .col-head .bulb { background:var(--lamp-rev); }
+  .card { background:var(--surface2); border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; margin-bottom:10px; box-shadow:var(--shadow); }
+  .card:last-child { margin-bottom:2px; }
+  .card .top { display:flex; align-items:center; gap:8px; }
+  .card .id { font-size:12px; color:var(--muted); }
+  .pill { font-size:11px; padding:1px 8px; border-radius:999px; border:1px solid; }
+  .pill.run  { color:var(--lamp-run); border-color:var(--lamp-run); }
+  .pill.dec  { color:var(--lamp-dec); border-color:var(--lamp-dec); }
+  .pill.blk  { color:var(--lamp-blk); border-color:var(--lamp-blk); }
+  .pill.rev  { color:var(--lamp-rev); border-color:var(--lamp-rev); }
+  .pill.dim  { color:var(--muted); border-color:var(--line); }
+  .card .title { font-size:14px; font-weight:600; margin:6px 0 2px; line-height:1.45; }
+  .card .why { font-size:12.5px; margin:6px 0 0; padding:7px 10px; border-radius:8px;
+    background:var(--bg); white-space:pre-wrap; }
+  .card .why.why-blk { border-left:3px solid var(--lamp-blk); }
+  .card .why.why-dec { border-left:3px solid var(--lamp-dec); }
+  .card .meta2 { font-size:11.5px; color:var(--muted); margin-top:7px; word-break:break-all;
+    display:flex; flex-wrap:wrap; gap:4px 10px; }
+  .empty { font-size:12.5px; color:var(--muted); padding:14px 4px; }
+
+  /* ---- collapsed groups ---- */
+  .groups { padding:8px 26px 4px; display:grid; gap:8px; }
+  details.group { background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:10px 14px; }
+  details.group summary { cursor:pointer; color:var(--muted); font-size:13px;
+    display:flex; align-items:center; gap:8px; list-style:none; }
+  details.group summary::-webkit-details-marker { display:none; }
+  details.group summary .n { font-weight:700; color:var(--ink); }
+  details.group summary::after { content:"展开"; margin-left:auto; font-size:11px; }
+  details.group[open] summary::after { content:"收起"; }
+  details.group .wrap { margin-top:10px; }
+
+  footer { padding:14px 26px 22px; font-size:12px; color:var(--muted);
+    display:flex; gap:14px; flex-wrap:wrap; }
+  a { color:var(--brand); text-decoration:none; }
+  a:focus-visible, summary:focus-visible { outline:2px solid var(--brand); outline-offset:2px; border-radius:4px; }
 </style>
 </head>
 <body>
 <header>
-  <h1>🛳️ TaskPier 任务看板</h1>
-  <div class="chips" id="chips"></div>
-  <div class="meta" id="meta"></div>
+  <div class="brand"><span class="dot"></span><b>TaskPier</b><span>任务看板 · 港务调度</span></div>
+  <div class="lamps" id="lamps"></div>
+  <div class="meta"><span class="mode" id="modeTag">实时</span><br><span class="mono" id="stamp"></span></div>
 </header>
+
 <div class="banner" id="banner" hidden></div>
-<main class="grid" id="grid"></main>
-<section>
-  <details class="group" id="g-todo"><summary>待派 / 收件箱 (<span class="c"></span>)</summary><div></div></details>
-  <details class="group" id="g-done"><summary>完成 (<span class="c"></span>)</summary><div></div></details>
-  <details class="group" id="g-dead"><summary>失败 / 已取消 (<span class="c"></span>)</summary><div></div></details>
+
+<main class="grid" id="grid" aria-label="需要关注的四个状态"></main>
+
+<section class="groups">
+  <details class="group" id="g-todo"><summary>🗓 待派 / 收件箱 <span class="n">0</span></summary><div class="wrap"></div></details>
+  <details class="group" id="g-done"><summary>🏁 已完成 <span class="n">0</span></summary><div class="wrap"></div></details>
+  <details class="group" id="g-dead"><summary>🗑 失败 / 已取消 <span class="n">0</span></summary><div class="wrap"></div></details>
 </section>
-<footer>TaskPier · 数据源：本机任务库 · <span id="footmode"></span></footer>
+
+<footer>
+  <span>数据源：本机任务库</span><span id="footmode"></span>
+</footer>
 
 <script>window.__TASKPIER_BOOT__=/*__BOOT__*/null;</script>
 <script>
 const boot = window.__TASKPIER_BOOT__;
-const isSnap = boot && boot.mode === 'snapshot';
+const isSnap = !!(boot && boot.mode === 'snapshot');
 const ALERT = new Set(['waiting_decision','blocked','review']);
 const LABEL = { running:'执行中', waiting_decision:'待决策', blocked:'阻塞', review:'待验收',
                 todo:'待派', inbox:'收件箱', done:'完成', failed:'失败', cancelled:'已取消' };
+const PILL  = { running:'run', waiting_decision:'dec', blocked:'blk', review:'rev',
+                todo:'dim', inbox:'dim', done:'dim', failed:'dim', cancelled:'dim' };
 const PRIMARY = ['running','waiting_decision','blocked','review'];
+const LAMP = { running:['run','执行中'], waiting_decision:['dec','待决策'],
+               blocked:['blk','阻塞'], review:['rev','待验收'] };
 
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function fmtTime(iso){ try { return new Date(iso).toLocaleString('zh-CN', {hour12:false}); } catch { return iso; } }
-
-function card(t){
-  const bits = [t.host, t.project, t.workspace].filter(Boolean).map(esc).join(' · ');
-  const why = t.blocked_reason ? `<div class="why">⛔ ${esc(t.blocked_reason)}</div>`
-            : t.decision_question ? `<div class="why">❓ ${esc(t.decision_question)}</div>` : '';
-  return `<div class="card ${esc(t.status)}">
-    <span class="id">${esc(t.displayId)}</span>
-    <div class="title">${esc(t.title)}</div>
-    ${why}
-    <div class="meta2">${bits}${bits?' · ':''}更新 ${esc(fmtTime(t.updatedAt))}</div>
-  </div>`;
-}
+function fmtTime(iso){ try { return new Date(iso).toLocaleString('zh-CN',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch { return iso; } }
 
 function render(d){
-  const chips = [['执行中',d.counts.running],['待决策',d.counts.waiting_decision,'warn'],
-                 ['阻塞',d.counts.blocked,'bad'],['待验收',d.counts.review]];
-  document.getElementById('chips').innerHTML =
-    chips.map(([l,v,c])=>`<span class="chip ${c||''}">${l} <b>${v}</b></span>`).join('');
-  document.getElementById('meta').textContent =
-    (isSnap ? '快照生成于 ' : '实时 · 刷新于 ') + fmtTime(d.generatedAt) + (d.needsAttention ? ` · 需要你关注 ${d.needsAttention} 项` : '');
+  // lamp strip
+  document.getElementById('lamps').innerHTML = PRIMARY.map(([s,[cls,label]]) => {
+    const n = d.counts[s] || 0, on = n > 0;
+    return `<div class="lamp ${cls} ${on?'on':'off'}" title="${label}：${n}">
+      <span class="bulb"></span><span class="v">${n}</span><span class="l">${label}</span></div>`;
+  }).join('');
+  document.getElementById('stamp').textContent = fmtTime(d.generatedAt);
 
+  // four primary berths
   document.getElementById('grid').innerHTML = PRIMARY.map(s => {
+    const [cls,label] = LAMP[s];
     const list = d.columns[s] || [];
-    return `<div class="col ${ALERT.has(s)?'alert':''}"><h2>${LABEL[s]} <span class="n">${list.length}</span></h2>
-      ${list.length ? list.map(card).join('') : '<div class="empty">空</div>'}</div>`;
+    return `<section class="col ${cls.slice(0,3)}" aria-label="${label}">
+      <div class="col-head"><span class="bulb"></span><b>${label}</b><span class="n mono">${list.length}</span></div>
+      ${list.length ? list.map(card).join('') : '<div class="empty">泊位空闲，暂无任务</div>'}
+    </section>`;
   }).join('');
 
-  const groups = [ ['g-todo',['todo','inbox']], ['g-done',['done']], ['g-dead',['failed','cancelled']] ];
+  // collapsed groups
+  const groups = [ ['g-todo',['todo','inbox'],'待派 / 收件箱'],
+                   ['g-done',['done'],'已完成'],
+                   ['g-dead',['failed','cancelled'],'失败 / 已取消'] ];
   for (const [gid, sts] of groups) {
     const el = document.getElementById(gid);
     const list = sts.flatMap(s => d.columns[s] || []);
-    el.querySelector('.c').textContent = list.length;
-    el.querySelector('div').innerHTML = list.length ? list.map(card).join('') : '<div class="empty">空</div>';
+    el.querySelector('.n').textContent = list.length;
+    el.querySelector('.wrap').innerHTML = list.length ? list.map(card).join('')
+      : '<div class="empty">暂无记录</div>';
   }
 }
 
+function card(t){
+  const bits = [t.host, t.project, t.workspace].filter(Boolean).map(esc).join(' · ');
+  const why = t.blocked_reason
+      ? `<div class="why why-blk">⛔ ${esc(t.blocked_reason)}</div>`
+      : t.decision_question
+      ? `<div class="why why-dec">❓ ${esc(t.decision_question)}</div>` : '';
+  return `<article class="card">
+    <div class="top"><span class="id mono">${esc(t.displayId)}</span>
+      <span class="pill ${PILL[t.status]||'dim'}">${LABEL[t.status]||t.status}</span></div>
+    <div class="title">${esc(t.title)}</div>
+    ${why}
+    <div class="meta2">${bits?`<span>${bits}</span>`:''}<span>更新 ${esc(fmtTime(t.updatedAt))}</span></div>
+  </article>`;
+}
+
 if (isSnap) {
-  document.getElementById('banner').hidden = false;
-  document.getElementById('banner').textContent =
-    '⏱ 快照模式：本页为 ' + fmtTime(boot.data.generatedAt) + ' 的状态快照，非实时。实时看板请在本机运行 TaskPier board 服务。';
+  document.getElementById('modeTag').textContent = '快照';
+  const b = document.getElementById('banner');
+  b.hidden = false;
+  b.textContent = '⏱ 本页是 ' + fmtTime(boot.data.generatedAt) + ' 的状态快照，非实时；数据变化后由负责人重新发布。实时看板请在本机运行 TaskPier board 服务。';
   document.getElementById('footmode').textContent = '快照发布（ZCode Sites）';
   render(boot.data);
 } else {
-  document.getElementById('footmode').textContent = '本地实时 · 每 8 秒自动刷新';
+  document.getElementById('modeTag').textContent = '实时';
+  document.getElementById('footmode').textContent = '每 8 秒自动刷新';
   async function load(){
     try { const r = await fetch('/api/board'); if (r.ok) render(await r.json()); } catch {}
   }
