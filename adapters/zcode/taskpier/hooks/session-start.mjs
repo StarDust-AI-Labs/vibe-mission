@@ -7,13 +7,27 @@
 // SessionStart is documented but not yet runtime-verified on this host; if the
 // host rejects the output, adjust here first.
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { openStore } from '../core/store.mjs';
 
+/**
+ * DB path resolution — MUST match the MCP server's chain. The primary source
+ * of truth is ~/.agents/mcp.json (taskpier server env), so the hook finds the
+ * same store the server writes to even without shared environment variables.
+ */
 function findExistingDb() {
   const candidates = [];
   if (process.env.TASKPIER_DB_PATH) candidates.push(process.env.TASKPIER_DB_PATH);
+  try {
+    const agentMcp = resolve(homedir(), '.agents', 'mcp.json');
+    if (existsSync(agentMcp)) {
+      const conf = JSON.parse(readFileSync(agentMcp, 'utf8'));
+      const env = conf?.mcpServers?.taskpier?.env;
+      if (env?.TASKPIER_DB_PATH) candidates.push(env.TASKPIER_DB_PATH);
+    }
+  } catch { /* config absent or unreadable — fall through */ }
   if (process.env.TASKPIER_PLUGIN_DATA) candidates.push(`${process.env.TASKPIER_PLUGIN_DATA}/taskpier.sqlite`);
   if (process.env.ZCODE_PLUGIN_DATA) candidates.push(`${process.env.ZCODE_PLUGIN_DATA}/taskpier.sqlite`);
   candidates.push(resolve(process.cwd(), 'taskpier.sqlite'));
