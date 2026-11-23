@@ -30,6 +30,11 @@ function start() {
       buffer = buffer.slice(idx + 1);
       if (!line) continue;
       const msg = JSON.parse(line);
+      // JSON-RPC 2.0: every response must carry the version literal. Strict
+      // MCP clients (official SDK) reject a missing field and disconnect —
+      // this is exactly the "server works by hand but host fails to connect"
+      // failure mode, so guard it at the framing layer.
+      assert.equal(msg.jsonrpc, '2.0', 'response missing jsonrpc: "2.0"');
       const resolver = pending.get(msg.id);
       if (resolver) {
         pending.delete(msg.id);

@@ -30,6 +30,10 @@ export function createRouter(store) {
     // Notifications (no id): nothing to answer.
     if (id === undefined || id === null) return null;
 
+    // Every response carries jsonrpc: '2.0' — strict clients (official MCP SDK
+    // zod schemas) reject a response missing the field and drop the connection.
+    const reply = (body) => ({ jsonrpc: '2.0', id, ...body });
+
     switch (method) {
       case 'initialize': {
         const requested = params?.protocolVersion;
@@ -37,59 +41,54 @@ export function createRouter(store) {
           typeof requested === 'string' && SUPPORTED_PROTOCOL_VERSIONS.has(requested)
             ? requested
             : DEFAULT_PROTOCOL_VERSION;
-        return {
-          id,
+        return reply({
           result: {
             protocolVersion: version,
             capabilities: { tools: { listChanged: false } },
             serverInfo: SERVER_INFO,
           },
-        };
+        });
       }
       case 'tools/list':
-        return { id, result: { tools: toolDefs } };
+        return reply({ result: { tools: toolDefs } });
       case 'tools/call': {
         const name = params?.name;
         const handler = handlers[name];
         if (!handler) {
-          return {
-            id,
+          return reply({
             error: { code: -32602, message: `unknown tool: ${name}` },
-          };
+          });
         }
         try {
           const result = handler(params?.arguments ?? {});
-          return {
-            id,
+          return reply({
             result: {
               content: [{ type: 'text', text: JSON.stringify(result) }],
               structuredContent: result,
             },
-          };
+          });
         } catch (err) {
           if (err instanceof TaskPierError) {
-            return {
-              id,
+            return reply({
               result: {
                 isError: true,
                 content: [{ type: 'text', text: `[${err.code}] ${err.message}` }],
                 structuredContent: { error: err.code, message: err.message, data: err.data ?? null },
               },
-            };
+            });
           }
-          return {
-            id,
+          return reply({
             result: {
               isError: true,
               content: [{ type: 'text', text: `[internal] ${err?.message ?? String(err)}` }],
             },
-          };
+          });
         }
       }
       case 'ping':
-        return { id, result: {} };
+        return reply({ result: {} });
       default:
-        return { id, error: { code: -32601, message: `method not found: ${method}` } };
+        return reply({ error: { code: -32601, message: `method not found: ${method}` } });
     }
   };
 }
