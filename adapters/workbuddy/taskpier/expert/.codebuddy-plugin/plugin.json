@@ -1,0 +1,21 @@
+{
+  "name": "taskpier-foreman",
+  "expertType": "agent",
+  "version": "0.2.0",
+  "description": "TaskPier WorkBuddy adapter: single point of contact (foreman) over the unified task store — register, dispatch, reconcile, report via the Feishu assistant session.",
+  "author": "StarDust AI Labs",
+  "agents": ["../skills/workbuddy-foreman/SKILL.md"],
+  "skills": [],
+  "license": "MIT",
+  "keywords": ["任务管理", "包工头", "状态跟踪", "飞书", "taskpier", "对账"],
+  "agentName": "taskpier-foreman",
+  "displayName": { "zh": "包工头（TaskPier）", "en": "Foreman (TaskPier)" },
+  "profession": { "zh": "本机任务总管", "en": "Local Task Foreman" },
+  "displayDescription": { "zh": "你只跟我一个人说话，我去登记、派活、对账、收结果、汇总回报。", "en": "One point of contact for every task: register, dispatch, reconcile, report." },
+  "categoryId": "02-Engineering",
+  "defaultInitPrompt": { "zh": "今天有哪些任务在跑？", "en": "What tasks are running today?" },
+  "plugin": "taskpier-foreman",
+  "tags": ["local", "task-management", "feishu", "mcp"],
+  "quickPrompts": ["今天有哪些任务在跑？", "出一份日报", "跑一次对账", "催一下所有在跑的任务"],
+  "maxTurns": 150
+}

@@ -33,7 +33,7 @@ Inspired by DeepSeek Harness's open-sourced Super-agent exploration (Router/Work
 taskpier/
 ├── marketplace.json  Local test marketplace root — add this folder in the ZCode UI to install (planned)
 ├── core/             Task store + MCP server — IMPLEMENTED (src + tests), host-agnostic canonical source
-├── adapters/         Host adapters: zcode (plugin-creator packaged), claude-code, generic
+├── adapters/         Host adapters: zcode (plugin-marketplace), workbuddy (reference install, v0.2), claude-code/generic (planned)
 ├── board/            Local web dashboard                          (placeholder)
 └── docs/             Architecture, adapter contract, status model, owner skill, decisions
 ```
@@ -45,7 +45,7 @@ ZCode users: after cloning, the repo root doubles as a plugin marketplace — ad
 | Doc | What it covers |
 |---|---|
 | [Architecture](docs/architecture.md) | Layers, MCP tool surface, context/concurrency/routing design, positioning vs native host task systems |
-| [Adapter contract](docs/adapters.md) | Adapter tiers (native / CLI / observe-only), what a host adapter must provide; ZCode notes |
+| [Adapter contract](docs/adapters.md) | Adapter tiers (native / CLI / observe-only), what a host adapter must provide; ZCode + WorkBuddy notes |
 | [Owner skill](docs/owner-skill.md) | The owner agent's SKILL.md blueprint: boot sequence, routing tree, dispatch & guardrails |
 | [Status model](docs/status-model.md) | The 8-state lifecycle and alert rules |
 | [Roadmap](docs/roadmap.md) | P0 probes → v1 → v1.1, open questions |
@@ -57,6 +57,7 @@ ZCode users: after cloning, the repo root doubles as a plugin marketplace — ad
 |---|---|
 | **P0** | Feasibility probes: MCP/extension capability check, permission behavior, channel reuse, board rendering |
 | **v1** | Task store + MCP tools + web board + alerts + semi-automatic owner |
+| **v0.2** | WorkBuddy adapter (foreman persona, Tier 0, reconcile) — the rule-of-two second adapter |
 | **v1.1** | Automatic task decomposition; card buttons; more channels |
 
 ## License

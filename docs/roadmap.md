@@ -31,12 +31,21 @@
 
 **v1 开工顺序**：core ✅（已实现，25 tests）→ owner skill 正式化 + zcode 适配器插件打包（**严格按 plugin-creator 六步流程**，D15：ZCode 风味产物 + node 校验）→ board（Web 兜底）→ channel-feishu → P0-B/C 回填结论。
 
+## v0.2（WorkBuddy 适配器 · 双适配器里程碑）
+
+2026-11-23 立项（decisions.md D20，foreman-agent 原型并入）：
+
+- **adapter-workbuddy**（Tier 0）：包工头岗位卡（task_* 统一工具面）+ reconcile 只读对账 + 引用式安装器；告警=飞书会话内回复。
+- **rule of two 验证**：core 零改动服务第二宿主；安装模式出现第二种（引用式 vs 插件市场式），validate-plugin 按模式分校验。
+- 验收（WorkBuddy 侧闭环）：包工头上任引导报到 → 一句话登记（keywords 必填）→ 推进落库 → reconcile 报告与实际一致。
+- 升级口：WorkBuddy 会话内探针（问 agent 工具清单）判 Tier，开放编排则补 DispatchPort 升 Tier 2。
+
 ## v1.1（自动拆解 + 体验）
 
 - 一句话自动拆解任务树（并发上限、排队）。
 - 告警卡片按钮（通过/打回/更多）。
 - **Tier 1 通用 CLI 适配器**（shell 派工：Kimi CLI / Claude Code / Codex 等命令行形态的宿主，见 adapters.md §1.1）。
-- Workbuddy 探针（问 agent 列工具清单，判定 Tier 2/1/0）+ Claude Code 适配器。
+- Claude Code 适配器；core 入向幂等键（foreman message_id 语义，D20-⑦候选）。
 
 ## 悬而未决（Open questions）
 

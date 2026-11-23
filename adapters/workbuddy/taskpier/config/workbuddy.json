@@ -1,0 +1,7 @@
+{
+  "_note": "WorkBuddy 适配器配置：只保留 reconcile 所需的宿主侧证据源路径。意图路由与审批门禁已上收到 skills/workbuddy-foreman/SKILL.md（统一工具面决策 D1）；任务库路径不经此文件，走 install.mjs 注入的 TASKPIER_DB_PATH（core dbpath 解析链）。",
+  "workbuddy": {
+    "dbPath": "C:/Users/24424/.workbuddy/workbuddy.db",
+    "tasksDir": "C:/Users/24424/.workbuddy/tasks"
+  }
+}

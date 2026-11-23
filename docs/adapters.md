@@ -123,18 +123,38 @@ interface NotifyPort { }                        // 与 HostAdapter 正交的另�
 - **core 代码落位**：MCP server 必须自包含在插件根内（路径不得越界）。v1 把 core 实现放在插件内，顶层 `core/` 只承载设计与共享约定；等第二个宿主适配器落地时再抽取到顶层，两边 sync。
 - **扩展字段说明**：宿主二进制存在 `extension` 字段 schema，但 plugin-creator 规范未记载；2026-11-19 已拍板不依赖该路线（借用宿主），本插件清单**不使用文档外字段**。
 
-## 3. Claude Code 适配器（计划）
+## 3. WorkBuddy 适配器（v0.2，2026-11-23 交付）
+
+由独立原型 foreman-agent（包工头）并入（decisions.md D20）。**rule of two 的第二个适配器**——本次落地验证的抽象边界结论：
+
+- **端口抽象经受住复用**：core 六工具/9 态状态机/dbpath 解析链零改动即服务第二宿主；变的只有 adapter 一层（skill 文本 + reconcile 翻译表 + 安装器），符合 D13 预期。
+- **安装模式出现第二种**：引用式（mcp.json 写绝对路径指 `core/src/mcp-server.mjs`，无 bundled core 副本）——Abstract Factory 一节的第二个实例；validate-plugin.mjs 自此按适配器分模式校验。
+- **Tier 0 落地**（首个非 Tier 2 宿主）：dispatch 缺席时岗位卡降级为"本会话执行/人工执行 + 登记盯守"，与 §1.1 的设计吻合。
+
+组件（`adapters/workbuddy/taskpier/`）：
+
+| 组件 | 作用 |
+|---|---|
+| `expert/skills/workbuddy-foreman/SKILL.md` | 包工头岗位卡：飞书单一入口、台账真相源、五级意图路由、审批门禁、状态词汇表（验收=用户/结果判定=CEO）、reconcile 工作流 |
+| `reconcile/observer.mjs` | 只读对账：workbuddy.db（sessions/automations）+ tasks/*/1.json ↔ TaskPier 库；输出 drift / unregistered / unavailable；WorkBuddy→core 状态翻译表（ACL） |
+| `install.mjs` | 三态安装器（dry-run/--apply/--rollback）：专家包 + `~/.workbuddy/mcp.json` 的 taskpier 条目（优先 WorkBuddy 内嵌 node） |
+| `config/workbuddy.json` | 仅宿主侧证据源路径（路由/门禁语义已上收 skill，D20-①） |
+| `expert/.codebuddy-plugin/plugin.json` | WorkBuddy 专家打包清单（taskpier-foreman） |
+
+升级路径：README 记录的 10 分钟探针（WorkBuddy 会话内问 agent 工具清单）判定是否开放会话编排 → 升 Tier 2 时按 §1 契约补 DispatchPort，岗位卡派工一节替换，其余不动。
+
+## 4. Claude Code 适配器（计划）
 
 - dispatch：待验证的 headless 入口（`claude -p`）或宿主内会话工具。
 - observe：hooks 事件集与 ZCode 高度相似（同源设计），预期可映射；待逐项核对。
 - surface：无内嵌面板预期，看板走 Web。
 - 顺序：P0 完成、v1 稳定后启动；接口按 §1 契约实现，不倒逼契约变更。
 
-## 4. Generic 适配器（零成本兜底）
+## 5. Generic 适配器（零成本兜底）
 
 任何支持 MCP 宿主：直接挂 TaskPier core 的 MCP server，得到任务库全部工具；dispatch 缺席时，owner 退化为"登记 + 跟踪 + 告警"（任务由用户在该宿主手动执行）。这保证 TaskPier 在未适配宿主上也不会一无是处。
 
-## 5. Channel 适配器
+## 6. Channel 适配器
 
 | Channel | 方向 | v1 | 备注 |
 |---|---|---|---|
