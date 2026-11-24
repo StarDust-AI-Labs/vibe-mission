@@ -150,18 +150,19 @@
   </div>
 </section>
 
-<!-- 三、一件事怎么走 -->
+<!-- 三、接到一句话之后 -->
 <section>
   <div class="wrap">
-    <div class="eyebrow">任务的走法</div>
-    <h2>五步，人只出场两次</h2>
+    <div class="eyebrow">接到一句话之后</div>
+    <h2>先想清楚，再动手</h2>
+    <p>人说的往往是半句话。直接丢给会话，执行方只能猜——所以派工之前要过五道工序。</p>
 
     <ol class="steps">
-      <li><b>你说一句</b><span>原话入库，不改写。重复说会合并，不会多出一条。</span></li>
-      <li><b>它立项</b><span>写清目标、预期结果、验收标准——缺一样就不许往下走。</span></li>
-      <li><b>它派工</b><span>在自己的产品里建会话、指定工作区，任务进入执行中。</span></li>
-      <li><b>它跟踪</b><span>只在卡住、要你选、或干完了这三件事上找你。</span></li>
-      <li><b>你验收</b><span>每条标准都有证据才给你看；你说通过，才算完成。</span></li>
+      <li><b>留存原话</b><span>你说的半句话原样存下，后面所有理解都能对回这一句。</span></li>
+      <li><b>补齐澄清</b><span>补目标、边界、现状、期望。一次问清；你没空就按默认假设推进，并在卡上标"假设可改"。</span></li>
+      <li><b>写成任务卡</b><span>目标、验收标准、风险、需要你拍板的点——四样先定下来，缺验收标准不许往下走。</span></li>
+      <li><b>优化提示词</b><span>执行会话不知道你们聊过什么。派工前把背景、约束、验收、证据要求写成一份自包含的指令。</span></li>
+      <li><b>建会话开跑</b><span>同时告诉你"我理解成了什么、验收是什么、大概多久"，扫一眼就能纠正。</span></li>
     </ol>
 
     <div class="rule">只有你能说"完成"。接口人最多推到"待验收"。</div>
@@ -172,8 +173,8 @@
 <section>
   <div class="wrap">
     <div class="eyebrow">任务卡</div>
-    <h2>一张卡，四件事说清</h2>
-    <p>目标、验收、状态、证据。别的都是细节。</p>
+    <h2>一张卡，六件事说清</h2>
+    <p>目标、验收、风险、拍板点、证据、状态。别的都是细节。</p>
 
     <div class="card">
       <div class="card-top">
@@ -183,6 +184,8 @@
       <div class="card-body">
         <div class="row"><div class="k">目标</div><div class="v">手机竖屏和横屏都能正常看正文</div></div>
         <div class="row"><div class="k">验收</div><div class="v">① 竖屏正文 ≥14px、无横滚<br />② 横屏书页占宽 ≥60%<br />③ 桌面端无回归</div></div>
+        <div class="row"><div class="k">风险</div><div class="v">留白是模板底座第一天的假设，改动可能影响其它模板 → 改完必跑桌面回归</div></div>
+        <div class="row"><div class="k">待拍板</div><div class="v">两种改法都能过验收时，选"改动小"还是"观感好"？建议改动小</div></div>
         <div class="row"><div class="k">证据</div><div class="v">三张截图 <span class="ok">已齐</span></div></div>
         <div class="row"><div class="k">状态</div><div class="v">ZCode 执行中 · 15:52 最后活动</div></div>
       </div>
@@ -192,7 +195,28 @@
   </div>
 </section>
 
-<!-- 五、范围 -->
+<!-- 五、汇报 -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">统一汇报</div>
+    <h2>你问一句，它回五段</h2>
+    <p>不管手上有几件事、在几个产品里，回答都是同一个结构，先给结论。</p>
+
+    <div class="card">
+      <div class="card-body" style="padding-top:18px">
+        <div class="row"><div class="k">结论</div><div class="v">整体正常：2 件在跑，1 件卡住，1 件等你拍板</div></div>
+        <div class="row"><div class="k">等你拍板</div><div class="v">#12 选哪个改法 · 建议改动小（最多 3 条，带选项）</div></div>
+        <div class="row"><div class="k">卡住的</div><div class="v">#9 等模板包授权 · 卡在素材方，需要你找人确认</div></div>
+        <div class="row"><div class="k">在跑的</div><div class="v">#12 改样式中，预计今晚 · #13 补测试，预计明天中午</div></div>
+        <div class="row"><div class="k">刚完成</div><div class="v">#11 已交付，等你验收（附证据）</div></div>
+      </div>
+    </div>
+
+    <p class="quiet">有变化才说；没变化就一句"和上次一样，无新增阻塞"。不主动发全量日报——该打扰才打扰。</p>
+  </div>
+</section>
+
+<!-- 六、范围 -->
 <section>
   <div class="wrap">
     <div class="eyebrow">范围</div>
