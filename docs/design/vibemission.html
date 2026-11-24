@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>VibeMission</title>
-<meta name="description" content="一个接口人，管住所有 agent 的任务。" />
+<meta name="description" content="一个产品，一个接口人。多设备的接口人可汇到一处。" />
 <style>
   :root{
     --bg:#fcfbf8;
@@ -33,7 +33,7 @@
   h1 span{color:var(--accent)}
   h2{font-size:clamp(22px,3.4vw,28px);line-height:1.3;letter-spacing:-.01em;margin:0 0 14px;font-weight:650}
   p{margin:0 0 16px;color:var(--ink-2)}
-  .lead{font-size:clamp(17px,2.2vw,20px);color:var(--ink-2);max-width:660px}
+  .lead{font-size:clamp(17px,2.2vw,20px);color:var(--ink-2);max-width:680px}
   .quiet{color:var(--muted);font-size:15px}
   em{font-style:normal;color:var(--ink);font-weight:600}
 
@@ -41,17 +41,20 @@
   .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
   .tag{font-size:12.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
 
-  /* 流程图：四步 */
-  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:center;gap:6px;margin:40px 0 8px}
-  .node{border:1px solid var(--line);background:#fff;border-radius:12px;padding:16px 10px;text-align:center}
-  .node b{display:block;font-size:15px;font-weight:600}
-  .node small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-  .node.hi{border-color:#bfe0da;background:var(--accent-soft)}
-  .arrow{color:#c9c3b6;font-size:18px;text-align:center}
-  @media(max-width:720px){
-    .flow{grid-template-columns:1fr;gap:4px}
-    .arrow{transform:rotate(90deg)}
-  }
+  /* 两级结构图 */
+  .org{margin:36px 0 10px}
+  .you{text-align:center;font-size:15px;font-weight:600;margin-bottom:10px}
+  .hub{border:1px dashed #cfc9bb;border-radius:12px;padding:14px 18px;text-align:center;background:#fff;margin:0 auto 6px;max-width:420px}
+  .hub b{font-size:15px;font-weight:600}
+  .hub small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  @media(max-width:680px){.split{grid-template-columns:1fr}}
+  .dev{border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px}
+  .dev .d{font-size:12px;color:var(--muted);letter-spacing:.04em;margin-bottom:6px}
+  .dev b{display:block;font-size:15px;font-weight:600}
+  .dev .role{color:var(--accent);font-size:12.5px;margin:2px 0 10px}
+  .dev .t{font-size:13.5px;color:var(--ink-2);border-top:1px solid #f2efe8;padding-top:10px}
+  .dev .t div{padding:2px 0}
 
   /* 步骤 */
   .steps{counter-reset:s;margin:36px 0 0;padding:0;list-style:none}
@@ -95,10 +98,11 @@
 <section class="hero">
   <div class="wrap">
     <div class="eyebrow">VibeMission · 2026-11-24</div>
-    <h1>一个接口人，<br />管住所有 <span>agent</span> 的任务。</h1>
+    <h1>一个产品，<br />一个<span>接口人</span>。</h1>
     <p class="lead">
-      你在飞书说一句话，它记下来、派给 agent、盯着进度、卡住时找你拍板。
-      不用再在 WorkBuddy、Codex、ZCode 的窗口之间来回切换。
+      每个 agent 产品配一位接口人，管好它自己那一摊任务。
+      你在飞书里跟它说一句话，它记下来、派出去、盯着进度、卡住时找你拍板。
+      多台设备上的接口人，还能汇到一处看全。
     </p>
     <div class="tags">
       <span class="tag">首发 ZCode</span>
@@ -108,23 +112,41 @@
   </div>
 </section>
 
-<!-- 二、怎么工作 -->
+<!-- 二、两级结构 -->
 <section>
   <div class="wrap">
-    <div class="eyebrow">怎么工作</div>
-    <h2>四个角色，各干一件事</h2>
-    <p>你只管说和拍板；它管登记、派工、跟踪；产品只管把活干好。</p>
+    <div class="eyebrow">怎么分工</div>
+    <h2>接口人不跨产品，汇总只管看全</h2>
+    <p>ZCode 的接口人不管 WorkBuddy 的活——它只懂自己这个产品的脾气。你要看全部，就找个汇总的地方。</p>
 
-    <div class="flow">
-      <div class="node hi"><b>你</b><small>说一句话</small></div>
-      <div class="arrow">→</div>
-      <div class="node"><b>负责人</b><small>登记 · 派工 · 催办</small></div>
-      <div class="arrow">→</div>
-      <div class="node"><b>任务账本</b><small>状态 · 证据 · 历史</small></div>
-      <div class="arrow">→</div>
-      <div class="node"><b>ZCode</b><small>真正把活干完</small></div>
+    <div class="org">
+      <div class="you">你</div>
+      <div class="hub">
+        <b>汇总</b>
+        <small>看全所有设备的进度 · 下达时转给对应接口人</small>
+      </div>
+      <div class="split">
+        <div class="dev">
+          <div class="d">设备 A</div>
+          <b>ZCode 接口人</b>
+          <div class="role">登记 · 派工 · 跟踪 · 收尾</div>
+          <div class="t">
+            <div>#12 分享页手机可读性 · 执行中</div>
+            <div>#13 首页加载优化 · 待验收</div>
+          </div>
+        </div>
+        <div class="dev">
+          <div class="d">设备 B</div>
+          <b>WorkBuddy 接口人</b>
+          <div class="role">登记 · 派工 · 对账</div>
+          <div class="t">
+            <div>#7 模板包合规 · 执行中</div>
+            <div>#9 上架素材整理 · 待派</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <p class="quiet" style="margin-top:14px">改完的结果沿着同一条线回来，变成账本里的一条记录，再变成一句向你汇报的话。</p>
+    <p class="quiet" style="margin-top:18px">没有汇总也能用。只连一台设备时，你直接跟那个接口人说话。</p>
   </div>
 </section>
 
@@ -136,13 +158,13 @@
 
     <ol class="steps">
       <li><b>你说一句</b><span>原话入库，不改写。重复说会合并，不会多出一条。</span></li>
-      <li><b>它立项</b><span>写清目标、预期结果、验收标准——这三样缺一样就不许往下走。</span></li>
-      <li><b>它派工</b><span>建会话、指定工作区，任务进入执行中。</span></li>
+      <li><b>它立项</b><span>写清目标、预期结果、验收标准——缺一样就不许往下走。</span></li>
+      <li><b>它派工</b><span>在自己的产品里建会话、指定工作区，任务进入执行中。</span></li>
       <li><b>它跟踪</b><span>只在卡住、要你选、或干完了这三件事上找你。</span></li>
       <li><b>你验收</b><span>每条标准都有证据才给你看；你说通过，才算完成。</span></li>
     </ol>
 
-    <div class="rule">只有你能说"完成"。它最多推到"待验收"。</div>
+    <div class="rule">只有你能说"完成"。接口人最多推到"待验收"。</div>
   </div>
 </section>
 
@@ -175,12 +197,13 @@
   <div class="wrap">
     <div class="eyebrow">范围</div>
     <h2>先把 ZCode 用起来</h2>
-    <p>账本按多产品设计，但接入按顺序来：一个产品跑通，再接下一个。</p>
+    <p>按顺序接，一个跑通再接下一个。</p>
 
     <div class="rows">
       <div class="r"><span class="n">01</span><span><em>ZCode</em> · 插件 + 钩子，拿到最细的状态</span><span class="w">首发</span></div>
       <div class="r"><span class="n">02</span><span><em>WorkBuddy</em> · 包工头 + 对账</span><span class="w">紧随其后</span></div>
-      <div class="r"><span class="n">03</span><span><em>Claude Code / Codex</em> · 通用协议接入</span><span class="w">之后</span></div>
+      <div class="r"><span class="n">03</span><span><em>多设备汇总</em> · 先把"看全"做出来</span><span class="w">之后</span></div>
+      <div class="r"><span class="n">04</span><span><em>Claude Code / Codex</em> · 通用协议接入</span><span class="w">更后</span></div>
     </div>
   </div>
 </section>
