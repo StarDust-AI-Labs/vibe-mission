@@ -1,7 +1,7 @@
 {
   "name": "taskpier",
   "interface": {
-    "displayName": "TaskPier 任务码头"
+    "displayName": "VibeMission 任务接口人"
   },
   "plugins": [
     {

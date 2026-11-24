@@ -1,9 +1,9 @@
 {
   "name": "taskpier",
   "version": "0.1.0",
-  "description": "TaskPier: unified task hub for this host - owner agent skill, task store (MCP), session-start briefing hook.",
+  "description": "VibeMission: one AI interface for all tasks on this host - owner agent skill, task store (MCP), session-start briefing hook.",
   "description_i18n": {
-    "zh-CN": "TaskPier 任务码头：工程负责人 skill + 任务库（MCP 工具面）+ 会话开始简报钩子。"
+    "zh-CN": "VibeMission 任务接口人：接口人 skill + 任务库（MCP 工具面）+ 会话开始简报钩子。"
   },
   "author": {
     "name": "StarDust AI Labs"

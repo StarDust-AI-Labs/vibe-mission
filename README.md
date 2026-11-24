@@ -1,83 +1,214 @@
-# TaskPier
+# VibeMission
 
-> One pier for all your agent tasks. — 一个码头，停靠所有 AI 代理的任务。
+> 一个接口人，管住所有 agent 的任务。
 
-**TaskPier** turns an AI coding host into a managed workshop: a single **owner agent** — a super-agent in the spirit of DeepSeek's Harness exploration — manages **all task sessions inside one host** (ZCode first): dispatching work, tracking status, reporting back. You talk to **one agent** instead of juggling N sessions. Core capabilities speak **MCP** (Model Context Protocol); each host gets a thin adapter. **One deployment manages one host.**
+**VibeMission** 跑在你本机，把散在不同 AI 产品对话框里的任务收进同一个任务库，由**一个 AI 接口人**负责登记、派工、盯进度、催办和收尾。你只需要跟这一个接口人说话，不用再在 N 个窗口之间来回切换、反复追问"做到哪了"。
 
-**Status**: pre-alpha · design & probe phase · not yet usable.
+**状态**：v1.0 范围已锁定（发布门槛见[下文](#v10-正式版本的功能范围)），核心任务库、看板、告警、ZCode/WorkBuddy 两个适配器已实现，尚未跑通真实任务闭环。
 
 ---
 
-## Why TaskPier
+## 设计理念
 
-Running several agent tasks in one host today makes **you** the dispatcher: you create sessions, chase each one for status, unblock stalls, and switch context all day. DeepSeek's Harness exploration put the bottleneck precisely: *a single task is limited by model capability; parallel tasks are limited by human attention.* TaskPier moves that tracking burden from you to an agent:
+### 一句话
 
-1. **You are the dispatcher.** N task sessions = N threads you must hold in your head.
-2. **Agents stall silently** on permissions or decisions; you find out hours later.
-3. **You can't steer remotely** — you want to say "do X", "stop #12", "approve" from your phone.
+**让 agent 帮人管任务，把人的注意力从"调度"里解放出来。**
 
-TaskPier's answer — **one owner agent per host**:
+### 要解决的问题：瓶颈不在模型，在人的注意力
 
-- **Owner persona** — a super-agent that manages the host's task sessions end-to-end: dispatch, track, unblock, report. You talk only to it (chat entry: Feishu DM or the host itself). v1 is command-driven; automatic decomposition is v1.1.
-- **Core (MCP)** — the task store + tool surface behind the owner. The only durable component; sessions — even the owner's own chat — can come and go.
-- **Board** — a local web dashboard for this host's tasks: running / blocked / needs-your-decision.
-- **Alerts** — push to Feishu/Lark (later Slack, Telegram) only for `waiting_decision` / `blocked` / `review`.
+同时开几个 agent 任务，人就成了调度员：建会话、逐个问进度、处理卡死、记住每条线做到哪一步。任务越多，越不是模型不够用，而是**人脑里挂着的线程太多**。
 
-**Design stance**: the store and the adapters are persistent; sessions are ephemeral. The owner is a *role*, not a long-lived chat — any session can pick the role up from the store and continue. **Scope is one host per deployment**: the pattern is host-agnostic (ZCode first; Workbuddy, Claude Code and others later via adapters), but a deployment never aggregates multiple hosts.
+DeepSeek 的 Harness 探索把这个瓶颈说得很准：*单个任务的上限是模型能力，并行任务的上限是人的注意力。*
 
-Inspired by DeepSeek Harness's open-sourced Super-agent exploration (Router/Worker layering, attention as the bottleneck) — see [一文读懂 DeepSeek 开源的 Super-agent](https://zhuanlan.zhihu.com/p/2100479855917904700) for a walkthrough of the original proposal.
+具体表现为三件事：
 
-## Repository layout
+1. **人肉调度** —— N 个任务就是 N 条得记住的线，切换一次就要重新捡起上下文。
+2. **静默卡死** —— agent 卡在权限、卡在等决策，人几小时后才知道。
+3. **无法遥控** —— 想在外面说一句"把 X 做了""停掉 12 号""这个通过"，做不到。
+
+### 四条设计主张
+
+**1. 单一入口：人只跟一个 AI 接口人对话。**
+不跟五个产品、十个窗口说话。所有任务状态通过同一个接口人查询、下达、拍板。接口人不是一个长命进程，而是一个**角色**——会话可以关，任务库还在，换个会话接任即可接着干。
+
+**2. 统一任务库：任务不隶属于某个产品。**
+ZCode 里跑的、WorkBuddy 里跑的、以后其它宿主里跑的，都是同一张表里的行。任务有自己的生命周期和事件流水，宿主只是它的执行场所。换产品不丢任务，看板只有一张。
+
+**3. 该打扰时才打扰。**
+只在三种状态主动找人：**阻塞、待你决策、待验收**。其余时间安静跟踪。告警去重、可设静默时段，不做全量进度播报——播报多了等于噪音，人又会退化成自己刷屏。
+
+**4. 跟踪、管理、清理全部交给 agent。**
+人不填状态、不做周报、不手动归档。状态由适配器在真实执行时回写，僵尸任务由接口人识别并处理，收尾和清理也是它的活。人只做两件事：**下达意图**和**拍板**。
+
+### 边界（有意不做）
+
+- **单机单部署**：一部署管一台机器上的宿主，不做跨机、跨人汇总。
+- **接口人不干活**：派工借用宿主原生会话能力，真正的执行仍在各 agent 产品里。
+- **v1.0 不自动拆解**：一句话登记成一个任务，不自动拆成任务树。
+- **数据不上云**：任务库是本地 SQLite，出网只发告警消息。
+
+---
+
+## 它长什么样
 
 ```
-taskpier/
-├── marketplace.json  Local test marketplace root — add this folder in the ZCode UI to install (planned)
-├── core/             Task store + MCP server — IMPLEMENTED (src + tests), host-agnostic canonical source
-├── adapters/         Host adapters: zcode (plugin-marketplace), workbuddy (reference install, v0.2), claude-code/generic (planned)
-├── board/            Local web dashboard                          (placeholder)
-└── docs/             Architecture, adapter contract, status model, owner skill, decisions
+        你（飞书 DM / 任意会话）
+                 │  说一句话
+                 ▼
+        ┌─────────────────┐
+        │  AI 接口人 owner │  登记·派工·跟踪·催办·清理
+        └────────┬────────┘
+                 │ MCP 工具（统一任务面）
+        ┌────────▼────────┐
+        │  任务库 (SQLite) │  唯一持久层：8 态 + 事件流水
+        └───┬─────────┬───┘
+            │         │
+    ┌───────▼──┐  ┌───▼────────┐
+    │ ZCode 适配│  │ WorkBuddy  │   ……更多宿主
+    │ 插件+钩子 │  │ 包工头+对账 │
+    └───────┬──┘  └───┬────────┘
+            │         │  状态自动回写
+        ┌───▼─────────▼───┐
+        │ 看板 / 飞书告警   │  你只在需要时被打扰
+        └─────────────────┘
 ```
 
-ZCode users: after cloning, the repo root doubles as a plugin marketplace — add it under 插件市场 → 添加 and install `taskpier` from there. Remote users can add it as a `git` marketplace source; no npm required.
+**仓库布局**
 
-## Documentation
+```
+vibemission/
+├── marketplace.json  ZCode 本地插件市场入口（仓库根即市场）
+├── core/             任务库 + MCP server 的规范源（宿主无关）
+├── adapters/         宿主适配器：zcode（插件市场式）、workbuddy（引用式）
+├── board/            本地 Web 看板 + 快照发布
+├── channels/         告警通道：feishu（lark-cli bot）
+└── docs/             架构、适配器契约、状态模型、接口人技能、决策日志
+```
 
-| Doc | What it covers |
+---
+
+## v1.0 正式版本的功能范围
+
+v1.0 是**第一个正式版本**，判定标准不是"功能多"，而是**核心承诺能否成立**：*你说一句话，它管到底，你只在要拍板时被打扰。*
+
+### A. 单一入口（AI 接口人）
+
+| # | 功能 | 为什么必须有 |
+|---|---|---|
+| A1 | 一个固定入口（飞书 DM 优先），任意会话可接任接口人 | 角色不绑进程，人才敢关窗口 |
+| A2 | 五类意图路由：新任务 / 续做 / 查询 / 叫停 / 拍板 | 说错一次就变成新任务，库会烂 |
+| A3 | 一句话登记，不要求人填字段；缺的信息自己补或只追问一次 | 让人填表等于没解放人 |
+
+### B. 统一任务库
+
+| # | 功能 | 为什么必须有 |
+|---|---|---|
+| B1 | 8 态生命周期（收件箱→待派→执行中→阻塞/待决策→待验收→完成/失败/取消）+ 事件流水 | 状态是接口人判断的依据，不能靠猜 |
+| B2 | 入向幂等/去重：同一件事说两次不产生两条任务 | 对话式入口必然重复输入 |
+| B3 | 僵尸任务识别与清理：超时无活动自动归档或询问 | "清理交给 agent"是核心承诺之一 |
+| B4 | 本地 SQLite，重启不丢，支持备份/导出 | 任务库是唯一持久资产 |
+
+### C. 跨产品对接（这是"解放切换"的物理前提）
+
+| # | 功能 | 为什么必须有 |
+|---|---|---|
+| C1 | 适配器契约：登记 / 观察 / 派工 三级能力（native / CLI / observe-only） | 产品能力不同，契约必须先定 |
+| C2 | 至少两个真实宿主跑通：ZCode（插件+钩子）、WorkBuddy（包工头+对账） | 只有一个宿主时，"统一"无从验证 |
+| C3 | 状态由适配器自动回写，不靠人填 | 人一填就退化成手工台账 |
+| C4 | 单库多宿主：一张看板看全部 | 否则只是换个地方切换 |
+
+### D. 主动汇报与打扰控制
+
+| # | 功能 | 为什么必须有 |
+|---|---|---|
+| D1 | 三态告警（阻塞 / 待决策 / 待验收）+ 去重 + 静默时段 | 只在该打扰时打扰 |
+| D2 | 告警卡片按钮：通过 / 打回 / 停掉，点一下即回写任务库 | 手机上也能拍板，不用打字 |
+| D3 | 收工摘要：一条消息说清今天推进了什么、卡在哪 | 替代人肉周报 |
+
+### E. 看板
+
+| # | 功能 | 为什么必须有 |
+|---|---|---|
+| E1 | 一屏看清：状态列 + 计数 + 阻塞高亮 + 自动刷新 | 不用逐个会话问进度 |
+| E2 | 单任务页：事件流水、证据链接、关联会话 | 争议时看证据，不看记忆 |
+| E3 | 只读为默认，可发布快照分享 | 操作统一走接口人，避免两个真相 |
+
+### F. 可安装、可诊断、可升级
+
+| # | 功能 | 为什么必须有 |
+|---|---|---|
+| F1 | 插件市场安装/升级 + 版本号 + 数据迁移脚本 | 跑在别人机器上才算产品 |
+| F2 | 首次运行向导：选宿主、绑飞书、设打扰策略 | 否则装完不会用 |
+| F3 | `doctor` 自检：钩子 / MCP / 库 / 告警四段连通性 | 出问题能自己定位，不靠人猜 |
+
+### v1.0 发布门槛（五条全绿才算正式版）
+
+1. **单宿主闭环**：飞书说一句 → 登记 → 派工 → 执行 → 回报，全程看板可见（ZCode）。
+2. **续做不断线**：隔天说"12 号那个再改一版" → 消息回到原任务会话续做，不新建任务。
+3. **跨宿主统一**：同一个任务在两个宿主各跑一段，看板上始终是一条。
+4. **打扰有效**：任务转阻塞后 10 分钟内收到告警，卡片点"打回"能直接改变任务状态。
+5. **七天真实使用**：连续 7 天用它管真实任务，任务零丢失，状态与实际一致率 ≥ 95%，僵尸任务被自动清理。
+
+### 明确不在 v1.0（避免范围蔓延）
+
+- 任务自动拆解成树（v1.1）
+- 跨机 / 多人协作 / 云端同步
+- 通用项目管理能力（甘特图、工时、排期）
+- 自动写代码、跑 CI、发布（那是宿主的事）
+
+---
+
+## 当前实现进度
+
+| 模块 | 状态 | 说明 |
+|---|---|---|
+| 任务库 + MCP 工具 | ✅ 已实现 | 建/改/查/列/看板汇总/应答决策，25 个测试 |
+| 本地看板 | ✅ 可用 | 8 态列、计数、高亮、8 秒自刷；支持快照发布 |
+| 飞书告警 | ✅ 代码完成 | 三态推送 + 去重；尚未接真实群 |
+| ZCode 适配器 | ✅ 已装生效 | 插件包 + SessionStart 钩子 + 接口人技能卡 |
+| WorkBuddy 适配器 | 🟡 原型 | 包工头岗位卡 + 只读对账，未验收 |
+| 意图路由 / 幂等 / 僵尸清理 | 🟡 部分 | 设计已定，未端到端验证 |
+| 告警卡片按钮 | ❌ 未做 | 目前只能回文字 |
+| 首次运行向导 / doctor | ❌ 未做 | — |
+| 真实任务闭环 | ❌ 未跑过 | 库里仅有演示任务 |
+
+测试：`node --test core/test/*.test.mjs board/test/*.test.mjs channels/test/*.test.mjs adapters/workbuddy/taskpier/test/*.test.mjs`（当前 36 项全绿）。
+
+---
+
+## 命名说明
+
+产品名从 **TaskPier** 改为 **VibeMission**。
+
+代码里的技术标识（插件 id `taskpier`、适配器目录 `adapters/*/taskpier/`、数据库文件名）**暂时保留**：这些标识已绑定到本机已安装的插件实例和现有任务库路径，直接改名会导致插件失联、数据看起来"消失"。计划在 v1.0 收尾时做一次带迁移的正式改名（迁移脚本 + 旧库自动识别），单独立项，不塞进功能开发。
+
+---
+
+## 快速开始
+
+```bash
+# 本地看板（默认 127.0.0.1:3210）
+node board/server.mjs
+
+# 跑测试
+node --test core/test/*.test.mjs
+```
+
+ZCode 用户：把仓库根目录作为本地插件市场添加（插件市场 → 添加），安装插件后重启宿主。
+
+---
+
+## 文档
+
+| 文档 | 内容 |
 |---|---|
-| [Architecture](docs/architecture.md) | Layers, MCP tool surface, context/concurrency/routing design, positioning vs native host task systems |
-| [Adapter contract](docs/adapters.md) | Adapter tiers (native / CLI / observe-only), what a host adapter must provide; ZCode + WorkBuddy notes |
-| [Owner skill](docs/owner-skill.md) | The owner agent's SKILL.md blueprint: boot sequence, routing tree, dispatch & guardrails |
-| [Status model](docs/status-model.md) | The 8-state lifecycle and alert rules |
-| [Roadmap](docs/roadmap.md) | P0 probes → v1 → v1.1, open questions |
-| [Decision log](docs/decisions.md) | Every key decision, why it was made, and what it ruled out |
-
-## Roadmap (short)
-
-| Phase | Deliverable |
-|---|---|
-| **P0** | Feasibility probes: MCP/extension capability check, permission behavior, channel reuse, board rendering |
-| **v1** | Task store + MCP tools + web board + alerts + semi-automatic owner |
-| **v0.2** | WorkBuddy adapter (foreman persona, Tier 0, reconcile) — the rule-of-two second adapter |
-| **v1.1** | Automatic task decomposition; card buttons; more channels |
+| [Architecture](docs/architecture.md) | 分层、MCP 工具面、上下文/并发/路由设计、与宿主原生任务系统的定位差异 |
+| [Adapter contract](docs/adapters.md) | 适配器分级（native / CLI / observe-only）与各宿主接入要点 |
+| [Owner skill](docs/owner-skill.md) | 接口人的 SKILL 蓝图：启动流程、意图路由树、派工与护栏 |
+| [Status model](docs/status-model.md) | 8 态生命周期与告警规则 |
+| [Roadmap](docs/roadmap.md) | 探针 → v1 → v1.1，以及未决问题 |
+| [Decision log](docs/decisions.md) | 每个关键决策、依据与被排除的选项 |
 
 ## License
 
 [MIT](LICENSE) © StarDust AI Labs and contributors.
-
----
-
-## 中文简介
-
-**TaskPier** 把一个 AI 编码宿主（ZCode 优先）变成"有人管的工坊"：部署后，一个**工程负责人代理**统一管理**该宿主内的所有任务会话**——派工、跟踪、状态反馈、告警。人只跟这一个代理对话，不再逐个盯任务。思想来源：DeepSeek Harness 的 Super-agent 架构探索（双层 Router/Worker、注意力是瓶颈）。
-
-要解决的问题（多任务的上限不在模型，在人的注意力）：
-
-1. **人就是调度员** → N 个任务会话就是 N 条要记在脑子里的线。TaskPier 把盯守负担交给代理。
-2. **静默卡死** → 仅对 `waiting_decision` / `blocked` / `review` 三个状态主动推送（飞书优先）。
-3. **无法遥控** → 你在飞书说"把 X 做了""停掉 #12""通过"，负责人建会话、跟踪、回报；v1 由你指令驱动，v1.1 再做自动拆解。
-
-**范围口径：一个部署管一个宿主。** 产品模式经适配器可复用到其他宿主（Workbuddy / Claude Code 等），但一个部署不做多宿主任务汇总。
-
-设计立场：**持久的是任务库与适配器，会话是易逝的**。负责人是一个"角色"，不是某个长命会话——任何会话都能从任务库恢复身份、接着干。
-
-当前状态：预发布前的设计与探针阶段。文档见 [docs/](docs/)。
