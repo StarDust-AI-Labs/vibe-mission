@@ -242,6 +242,7 @@ ZCode 用户：把仓库根目录作为本地插件市场添加（插件市场 �
 
 | 文档 | 内容 |
 |---|---|
+| [设计说明（在线）](https://vibemission-design-tlje.zai.site) | 单页图解：问题、六条主张、架构、三层模型、生命周期、任务卡、一次流转 |
 | [Architecture](docs/architecture.md) | 分层、MCP 工具面、上下文/并发/路由设计、与宿主原生任务系统的定位差异 |
 | [Adapter contract](docs/adapters.md) | 适配器分级（native / CLI / observe-only）与各宿主接入要点 |
 | [Mission 生命周期与任务卡](docs/mission-lifecycle.md) | 三层模型（Mission/Task/Run）、六阶段准入、任务卡字段与验收标准写法 |
