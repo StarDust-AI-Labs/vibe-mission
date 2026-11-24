@@ -228,6 +228,8 @@ ZCode 用户：把仓库根目录作为本地插件市场添加（插件市场 �
 |---|---|
 | [Architecture](docs/architecture.md) | 分层、MCP 工具面、上下文/并发/路由设计、与宿主原生任务系统的定位差异 |
 | [Adapter contract](docs/adapters.md) | 适配器分级（native / CLI / observe-only）与各宿主接入要点 |
+| [adapter-acp](docs/adapter-acp.md) | 通用派工插头的设计理念：翻译而非业务、能力声明与降级、账本为唯一真相 |
+| [研报复用清单](docs/research/2026-11-24-reuse-map.md) | 哪些现成开源实现可直接用（ACP / Backlog.md / 飞书 SDK）与许可证红线 |
 | [Owner skill](docs/owner-skill.md) | 接口人的 SKILL 蓝图：启动流程、意图路由树、派工与护栏 |
 | [Status model](docs/status-model.md) | 8 态生命周期与告警规则 |
 | [Roadmap](docs/roadmap.md) | 探针 → v1 → v1.1，以及未决问题 |

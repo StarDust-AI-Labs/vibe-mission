@@ -24,7 +24,7 @@
 | 阶梯 | 宿主具备什么 | TaskPier 能做到 | 典型宿主 |
 |---|---|---|---|
 | **Tier 2** 原生编排 | 宿主给 agent 开放会话工具（建/发/读/停） | 完整闭环：派工、跟进、读上下文、叫停 | ZCode（已实证） |
-| **Tier 1** CLI / 无头模式 | 产品有命令行形态 | **shell 派工**：拉起 `kimi cli` / `claude -p` / `codex exec` 子进程当任务会话；上下文=CLI 会话恢复 + git 工作区 | Kimi CLI、Claude Code、Codex 等 |
+| **Tier 1** CLI / 无头模式 | 产品有命令行形态 | **shell 派工**：拉起 `kimi cli` / `claude -p` / `codex exec` 子进程当任务会话；上下文=CLI 会话恢复 + git 工作区。**标准实现走 ACP**（见 [adapter-acp.md](adapter-acp.md)），从"每个产品摸参数"变成"配一份启动命令" | Kimi CLI、Claude Code、Codex 等 |
 | **Tier 0** 无自动化 | 只能人操作 | 降级：登记 + 跟踪 + 告警，人工执行，owner 盯状态催办 | 纯 GUI 产品 |
 
 跨宿主不变的：任务库 schema（`session_id` 在 Tier 2=宿主会话 ID、Tier 1=子进程记录、Tier 0=空）、8 态状态机、owner skill 骨架、告警规则。**变的只有 dispatch 一节**——每个宿主填一张"它有哪些手"的表。
