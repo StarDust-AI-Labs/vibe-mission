@@ -217,6 +217,7 @@ node scripts/validate-plugin.mjs   # 期望 validate: PASS
 | 文档 | 内容 |
 |---|---|
 | [Mission 生命周期与任务卡](docs/mission-lifecycle.md) | 三层模型、六阶段准入、任务卡字段、验收标准写法、立项流水线与统一汇报 |
+| [设计理念（内部实现版）](docs/design-philosophy.md) | 内部实现依据：角色模型、窗口≠任务、逐条归属、入口不执行高延迟任务、原则与反模式、代码落点 |
 | [安装与初始化](docs/install.md) | 目录规范、脚手架、插件安装、账本路径、自检清单——AI 引导用户安装照这份做 |
 | [目录、任务与记忆边界](docs/workspace-and-memory.md) | 办公室/执行目录/代码仓的分工；多产品共用账本与目录的规则 |
 | [适配器契约](docs/adapters.md) | Tier 0/1/2 能力阶梯、端口定义、新宿主接入六步 |
