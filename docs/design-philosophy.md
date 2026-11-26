@@ -243,6 +243,7 @@ vibemission/
 ## 11. 相关文档
 
 - [架构与分层](architecture.md)
+- [入向消息聚合与任务会话配置策略](ingress-aggregation.md)
 - [Mission 生命周期与任务卡](mission-lifecycle.md)
 - [目录、任务与记忆边界](workspace-and-memory.md)
 - [Owner 技能结构](owner-skill.md)
