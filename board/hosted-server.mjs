@@ -89,6 +89,9 @@ function headerValue(req, name) {
 function readBody(req, res, limit = MAX_BODY) {
   const declared = Number(headerValue(req, 'content-length') ?? NaN);
   if (Number.isFinite(declared) && declared > limit) {
+    // Drain the oversized request before closing; otherwise Node's client can
+    // see ECONNRESET instead of the 413 response (flaky under fetch()).
+    req.resume();
     res.writeHead(413, { 'content-type': 'application/json; charset=utf-8', connection: 'close' });
     res.end(JSON.stringify({ error: 'payload too large', limit }));
     return Promise.resolve({ ok: false, status: 413 });
