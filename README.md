@@ -192,6 +192,9 @@ vibe-mission/
 git clone https://github.com/StarDust-AI-Labs/vibe-mission.git
 cd vibe-mission
 
+# 建目录：共享账本 + 每个产品一间办公室（幂等）
+node scripts/init-layout.mjs --root "D:\vibemission" --products zcode
+
 # 意图 → 项目 → 执行目录（派工前必跑）
 node scripts/project-index.mjs --resolve "分享页字号太小"
 
@@ -214,9 +217,11 @@ node scripts/validate-plugin.mjs   # 期望 validate: PASS
 | 文档 | 内容 |
 |---|---|
 | [Mission 生命周期与任务卡](docs/mission-lifecycle.md) | 三层模型、六阶段准入、任务卡字段、验收标准写法、立项流水线与统一汇报 |
+| [安装与初始化](docs/install.md) | 目录规范、脚手架、插件安装、账本路径、自检清单——AI 引导用户安装照这份做 |
 | [目录、任务与记忆边界](docs/workspace-and-memory.md) | 办公室/执行目录/代码仓的分工；多产品共用账本与目录的规则 |
 | [适配器契约](docs/adapters.md) | Tier 0/1/2 能力阶梯、端口定义、新宿主接入六步 |
 | [adapter-acp](docs/adapter-acp.md) | 通用派工插头的设计理念：只翻译不做业务、能力声明与降级 |
+| [办公室场景图](docs/design/office-scene.html) | 一图：人 → 负责人 → 办公室 → 任务会话（可直接用浏览器打开） |
 | [同类项目调研](docs/research/2026-11-24-prior-art.md) | AgentRQ / Vibe Kanban / Backlog.md 等 10 个项目对比 |
 | [可复用实现清单](docs/research/2026-11-24-reuse-map.md) | 哪些开源件可直接用、许可证红线 |
 | [架构](docs/architecture.md) · [状态模型](docs/status-model.md) · [决策日志](docs/decisions.md) | 分层、8 态生命周期、关键取舍 |
