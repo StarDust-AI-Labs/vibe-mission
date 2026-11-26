@@ -1,6 +1,8 @@
-# VibeMission 设计理念
+# VibeMission 设计理念（内部实现版）
 
 > **一句话：一个产品，一个接口人。** 人只对话和拍板；接口人识别意图、派发任务、跟踪收尾；事实进账本，状态上看板。
+>
+> **读者**：VibeMission 维护者与实现者。本文是**内部实现依据**，不作为对外产品介绍；对外定位见 [README](../README.md)。
 >
 > 本文回答“为什么这样设计”。具体字段、状态机与目录规则见 [architecture.md](architecture.md)、[mission-lifecycle.md](mission-lifecycle.md)、[workspace-and-memory.md](workspace-and-memory.md)。
 
@@ -197,7 +199,26 @@ vibemission/
 
 ---
 
-## 9. 当前落地与缺口（2026-11-26）
+## 9. 实现落点（代码/文档映射）
+
+| 设计概念 | 实现落点 |
+|---|---|
+| 入口会话 / 任务会话、高延迟任务下放、逐条任务归属 | `adapters/zcode/vibemission/skills/vibemission-owner/SKILL.md` §2.2–2.4 |
+| 编号与一句话命名、`#N` 解析 | `core/src/format.mjs`、`core/src/tools.mjs` |
+| 账本、事件、9 态状态机 | `core/src/store.mjs`、`core/src/state-machine.mjs` |
+| 看板渲染与数据 | `board/data.mjs`、`board/page.html` |
+| 飞书三态告警 | `channels/feishu/notify.mjs` |
+| SessionStart 态势简报 | `adapters/zcode/vibemission/hooks/session-start.mjs` |
+| 目录 / 产品边界 | `docs/workspace-and-memory.md`、`projects.json` |
+| 插件打包与校验 | `scripts/sync-core.mjs`、`scripts/validate-plugin.mjs` |
+| 入口会话 → 多任务绑定（缺口） | 待加 `entry_session_id` 或 `entry_session_tasks` 绑定表 |
+
+实现时优先保证两条不变量：
+
+1. **入口会话不执行高延迟任务**：任何长作业先 `CreateSession`，再路由。
+2. **任务归属逐条判断**：不按窗口合并，也不按消息条数建任务；拿不准先问。
+
+## 10. 当前落地与缺口（2026-11-26）
 
 **已落地**
 
@@ -219,7 +240,7 @@ vibemission/
 
 ---
 
-## 10. 相关文档
+## 11. 相关文档
 
 - [架构与分层](architecture.md)
 - [Mission 生命周期与任务卡](mission-lifecycle.md)
