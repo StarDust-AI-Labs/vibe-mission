@@ -208,6 +208,18 @@ node board/server.mjs        # http://127.0.0.1:3210
 node scripts/validate-plugin.mjs   # 期望 validate: PASS
 ```
 
+### 云端 hosted 看板（近实时）
+
+线上站点自己保存一份 board JSON，本机推送器把 SQLite 最新数据推上去，页面轮询刷新——部署一次长期可用，不必数据一变就重发快照。静态快照模式继续可用。
+
+```bash
+export BOARD_SITE_URL=https://<hosted-site> BOARD_TOKEN=<token>
+node board/publish.mjs             # 单次推送
+node board/publish.mjs --watch 30  # 每 30 秒推送
+```
+
+部署步骤、环境变量、安全边界与回退方式见 [docs/hosted-board.md](docs/hosted-board.md)。
+
 **在 ZCode 里安装**：插件市场 → 添加本地目录 → 选仓库根的 `adapters/zcode`。
 
 ---
@@ -221,6 +233,7 @@ node scripts/validate-plugin.mjs   # 期望 validate: PASS
 | [安装与初始化](docs/install.md) | 目录规范、脚手架、插件安装、账本路径、自检清单——AI 引导用户安装照这份做 |
 | [目录、任务与记忆边界](docs/workspace-and-memory.md) | 办公室/执行目录/代码仓的分工；多产品共用账本与目录的规则 |
 | [适配器契约](docs/adapters.md) | Tier 0/1/2 能力阶梯、端口定义、新宿主接入六步 |
+| [云端 hosted 看板](docs/hosted-board.md) | 云端站点自存 board JSON + 本机推送器的近实时看板：部署、环境变量、安全边界、回退 |
 | [adapter-acp](docs/adapter-acp.md) | 通用派工插头的设计理念：只翻译不做业务、能力声明与降级 |
 | [办公室场景图](docs/design/office-scene.html) | 一图：人 → 负责人 → 办公室 → 任务会话（可直接用浏览器打开） |
 | [同类项目调研](docs/research/2026-11-24-prior-art.md) | AgentRQ / Vibe Kanban / Backlog.md 等 10 个项目对比 |
