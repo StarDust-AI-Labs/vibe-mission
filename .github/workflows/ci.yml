@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Unit tests (core)
+        run: npm test
+
+      - name: Unit tests (board / channels / routing / workbuddy)
+        run: |
+          node --test board/test/*.test.mjs
+          node --test channels/test/*.test.mjs
+          node --test scripts/project-index.test.mjs
+          node --test adapters/workbuddy/taskpier/test/reconcile.test.mjs
+
+      - name: Validate plugin manifests
+        run: node scripts/validate-plugin.mjs
