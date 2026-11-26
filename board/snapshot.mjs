@@ -18,7 +18,10 @@ import { buildBoardData } from './data.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..');
-const SKILL_TEMPLATES = 'C:/Users/24424/.zcode/cli/plugins/cache/zcode-plugins-official/zcode-site/0.5.1/skills/site-deploy/templates';
+// Vendored copies of the ZCode Sites static templates (skill zcode-site 0.5.1),
+// so snapshot builds are reproducible on any machine and in CI. To use a
+// different skill version, point ZCODE_SITE_TEMPLATES at its templates dir.
+const SKILL_TEMPLATES = process.env.ZCODE_SITE_TEMPLATES ?? join(HERE, 'templates');
 
 function parseArgs(argv) {
   const get = (flag) => {
