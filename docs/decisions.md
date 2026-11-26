@@ -26,4 +26,7 @@
 
 | D20 | 2026-11-23 | **foreman-agent 原型并入，WorkBuddy 适配器立项（v0.2 里程碑）**。七个子决策：① 工具面**统一 core `task_*` 六工具**（用户选定；foreman.* 别名出局，reconcile 不进 MCP、岗位卡 Bash 调脚本）；② 发布节奏 **v0.1.0=zcode 单适配器先行，v0.2.0=双适配器**（用户选定）；③ WorkBuddy 初版按 **Tier 0**（dispatch=null、observe=拉式 reconcile；探针升级口留适配器 README）；④ 安装形态**引用式**（mcp.json 绝对路径指 core/src/mcp-server.mjs，**无 bundled core 副本**，区别于 zcode 市场的自包含约束；sync-core 不扩展）；⑤ 部署库独立（adapter 下 `.taskpier/tasks.sqlite`，TASKPIER_DB_PATH 注入）；⑥ 告警=岗位卡飞书会话内直接回复（宿主原生 bot，不复用 lark-cli 出向）；⑦ foreman 的 message_id 入向幂等**不为此改 core**（v0.1 冻结），岗位卡加"疑似重复先 task_list 核对"护栏，幂等键列 v1.1 core 增强候选。资产去留：observer.mjs 迁移为 reconcile（+WorkBuddy→core 状态翻译表，ACL）；foreman.md 岗位卡改写为 SKILL.md（保留飞书单一入口/台账真相源/审批门禁/状态词汇表/对账不认模型自评）；install.mjs 三态保留改指向；ledger.mjs/index.mjs 不迁移（core 已覆盖且更强：9 态 FSM+guard+alert）。foreman-agent 仓本地归档不迁历史 | foreman 原型（2026-11-10 从 ai-factory/foreman 迁出）从未部署（无 mcp.json 条目、无 data/、专家包未装）→ 零兼容包袱；恰逢 D13 预留的 rule of two 时点，第二适配器落地验证抽象边界 | ✅（实装验收待用户） |
 
+| D21 | 2026-11-27 | **入向消息聚合收敛器立项**：连发消息先收敛（静默窗口 + 规则路由 + 一次意图抽取）再建任务，替代逐条即时推理 | 用户提出：飞书连发消息堆积、逐条推理割裂上下文、改主意作废早期推理；总体设计 [docs/ingress-aggregation.md](ingress-aggregation.md)（v0 待评审），关联任务 #38 | 🔄（设计评审中） |
+| D22 | 2026-11-27 | **任务会话配置策略**：AI 自主为默认（模型/思考强度/skills 白名单内）；重要/大型任务或用户主动要求时由用户决定（创建前一次配置确认）；skills 白名单外一律 `waiting_decision` 问一次 | 用户拍板（#38 讨论）；产品主张"人只下达意图、拍板"，事中逐项问配置 = 注意力税；机制见 [docs/ingress-aggregation.md](ingress-aggregation.md) §4 | ✅ |
+
 待定项随探针回填结论后移入"已定"。
