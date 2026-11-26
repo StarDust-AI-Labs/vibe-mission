@@ -4,15 +4,42 @@
 
 import { TaskPierError, Codes } from './errors.mjs';
 import { assertTransition, assertGuards, isAlertStatus, STATUSES, TERMINAL_STATUSES } from './state-machine.mjs';
+import { parseTaskRef } from './format.mjs';
 
-/** @param {string|number} id accepts "tp-12" | "12" | 12 */
+/** Title = 一句话名字 (one readable sentence). Hard cap keeps cards/refs scannable. */
+const TITLE_MAX = 80;
+
+/**
+ * Accepts "tp-12" | "tp-0012" | "#12" | "12" | 12 (via parseTaskRef).
+ * @param {string|number} id
+ */
 function parseTaskId(id) {
-  const m = /^tp-(\d+)$/.exec(String(id));
-  const n = m ? Number(m[1]) : Number(id);
-  if (!Number.isInteger(n) || n <= 0) {
+  const n = parseTaskRef(id);
+  if (n === null) {
     throw new TaskPierError(Codes.INVALID_INPUT, `invalid task id: ${id}`);
   }
   return n;
+}
+
+/**
+ * Trim + validate the one-line title. Blank (after trim) and over-length are
+ * rejected — on create and on update alike, since a blank title is never a
+ * meaningful "not provided".
+ * @param {Record<string, unknown>} args
+ * @param {{required?: boolean}} [opts]
+ * @returns {string|null}
+ */
+function normalizeTitle(args, { required = false } = {}) {
+  const v = args.title;
+  if (v === undefined || v === null || v === '') {
+    if (required) throw new TaskPierError(Codes.INVALID_INPUT, `\`title\` is required`);
+    return null;
+  }
+  if (typeof v !== 'string') throw new TaskPierError(Codes.INVALID_INPUT, `\`title\` must be a string`);
+  const t = v.trim();
+  if (t.length === 0) throw new TaskPierError(Codes.INVALID_INPUT, `\`title\` must not be blank`);
+  if (t.length > TITLE_MAX) throw new TaskPierError(Codes.INVALID_INPUT, `\`title\` exceeds ${TITLE_MAX} chars`);
+  return t;
 }
 
 function requireString(args, field, { required = false, max = 2000 } = {}) {
@@ -54,7 +81,7 @@ export function buildTools(store) {
      *          project?: string, workspace?: string, parent_id?: string|number, actor?: string}} args
      */
     task_create(args) {
-      const title = requireString(args, 'title', { required: true, max: 500 });
+      const title = normalizeTitle(args, { required: true });
       const keywords = requireStringArray(args, 'keywords') ?? [];
       const status = args.status ?? 'todo';
       if (!['inbox', 'todo'].includes(status)) {
@@ -74,7 +101,7 @@ export function buildTools(store) {
         workspace: requireString(args, 'workspace', { max: 1000 }),
         parent_id: parentId,
       });
-      store.appendEvent(task.id, 'create', args.actor ?? 'mcp', { status });
+      store.appendEvent(task.id, 'create', args.actor ?? 'mcp', { status, title });
       return { task };
     },
 
@@ -93,7 +120,7 @@ export function buildTools(store) {
 
       // Collect provided field updates (whitelist).
       const fieldArgs = {
-        title: requireString(args, 'title', { max: 500 }),
+        title: normalizeTitle(args),
         keywords: requireStringArray(args, 'keywords'),
         session_id: requireString(args, 'session_id', { max: 200 }),
         host: requireString(args, 'host', { max: 64 }),
@@ -132,7 +159,13 @@ export function buildTools(store) {
       }
       const fieldNames = Object.keys(provided).filter((k) => k !== 'status');
       if (fieldNames.length > 0) {
-        store.appendEvent(task.id, 'field_update', actor, { fields: fieldNames });
+        // Title provenance: record old→new so renames stay auditable.
+        const payload = { fields: fieldNames };
+        if (provided.title !== undefined) {
+          payload.from = task.title;
+          payload.to = provided.title;
+        }
+        store.appendEvent(task.id, 'field_update', actor, payload);
       }
       return { task: updated, transition };
     },
@@ -212,17 +245,17 @@ export function buildTools(store) {
   const toolDefs = [
     {
       name: 'task_create',
-      description: 'Register a task. Lands in `todo` by default (or `inbox` when unclassified).',
+      description: 'Register a task. title is a one-line readable name (动词+对象+结果, ≤80 chars); the id/number is auto-assigned. Lands in `todo` by default (or `inbox` when unclassified).',
       inputSchema: {
         type: 'object',
         properties: {
-          title: { ...str, maxLength: 500 },
+          title: { ...str, maxLength: 80, description: '一句话名字（动词+对象+结果），编号自动生成' },
           keywords: { ...strArr, description: 'routing aliases for intent matching' },
           status: { enum: ['inbox', 'todo'] },
           host: str,
           project: str,
           workspace: str,
-          parent_id: { type: ['string', 'number'], description: 'parent task, accepts tp-N or N' },
+          parent_id: { type: ['string', 'number'], description: 'parent task, accepts tp-N / #N / N' },
           actor: str,
         },
         required: ['title'],
@@ -235,7 +268,7 @@ export function buildTools(store) {
       inputSchema: {
         type: 'object',
         properties: {
-          id: { type: ['string', 'number'] },
+          id: { type: ['string', 'number'], description: 'task ref: tp-N / #N / N' },
           status: { enum: [...STATUSES] },
           session_id: str,
           blocked_reason: { ...str, description: 'required when transitioning to blocked' },
@@ -244,7 +277,7 @@ export function buildTools(store) {
           keywords: strArr,
           artifacts: strArr,
           evidence: strArr,
-          title: str,
+          title: { ...str, maxLength: 80, description: 'rename the task (一句话名字); the number never changes' },
           workspace: str,
           project: str,
           host: str,
@@ -259,7 +292,7 @@ export function buildTools(store) {
       description: 'Single task with its recent event history.',
       inputSchema: {
         type: 'object',
-        properties: { id: { type: ['string', 'number'] }, events_limit: { type: 'number', default: 10 } },
+        properties: { id: { type: ['string', 'number'], description: 'task ref: tp-N / #N / N' }, events_limit: { type: 'number', default: 10 } },
         required: ['id'],
         additionalProperties: false,
       },
@@ -289,7 +322,7 @@ export function buildTools(store) {
       inputSchema: {
         type: 'object',
         properties: {
-          id: { type: ['string', 'number'] },
+          id: { type: ['string', 'number'], description: 'task ref: tp-N / #N / N' },
           answer: { ...str, description: 'the user\u2019s decision text, recorded in events' },
           action: { enum: ['continue', 'abort'] },
           actor: str,

@@ -116,7 +116,7 @@ test('MCP handshake → tools/list → tools/call end to end', async () => {
   assert.equal(created.result.isError, undefined);
   const task = created.result.structuredContent.task;
   assert.equal(task.status, 'todo');
-  assert.equal(task.displayId, `tp-${task.id}`);
+  assert.equal(task.displayId, `tp-${String(task.id).padStart(4, '0')}`);
 
   // 5. illegal transition surfaces as a tool error (isError), not a crash
   const bad = await rpc('tools/call', {

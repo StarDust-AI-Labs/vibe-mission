@@ -74,15 +74,15 @@
 
 ```sql
 tasks(
-  id TEXT PRIMARY KEY,            -- tp-<n>
-  title TEXT NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, -- 数字任务号；接口展示 tp-0007，口头 #7
+  title TEXT NOT NULL,            -- 一句话名字（动词+对象+结果，硬上限 80 字）
   keywords TEXT,                  -- 路由别名/关键词（JSON 数组，供意图匹配）
-  status TEXT NOT NULL,           -- 8 态，见 status-model.md
+  status TEXT NOT NULL,           -- 9 态，见 status-model.md
   host TEXT,                      -- zcode / claude-code / …
   project TEXT,                   -- 宿主内项目/工作区标识
   session_id TEXT,                -- 宿主任务会话 id（可空）
   workspace TEXT,                 -- 落点目录
-  parent_id TEXT,                 -- 拆解父子关系
+  parent_id INTEGER,              -- 拆解父子关系
   blocked_reason TEXT,
   decision_question TEXT,         -- waiting_decision 时的问题+选项
   decision_options TEXT,
@@ -99,12 +99,14 @@ events(                           -- 审计流水，只追加
 
 数据落点：宿主提供的插件数据目录（如 ZCode 的 `${ZCODE_PLUGIN_DATA}`），不入仓、不上传。
 
+**编号与名字**：`id` 是自增数字，永不变、永不复用；接口/看板展示为 `tp-0007`，聊天口头用 `#7`（解析统一兼容 `7` / `#7` / `#0007` / `tp-7` / `tp-0007`）。`title` 是唯一的人读名字，规则见 owner skill §3.1：一句话、动词+对象+结果、一件事、硬上限 80 字；改名只改 `title`，编号不变，事件里留 `from → to`。
+
 ### 4.1 MCP 工具面（v1 定稿）
 
 | 工具 | 关键入参 | 语义 | 状态约束 |
 |---|---|---|---|
-| `task_create` | title, keywords?, workspace?, project?, parent_id? | 登记任务 | → `todo`（未分类先落 `inbox`） |
-| `task_update` | id, status?, session_id?, blocked_reason?, decision_question?, decision_options?, keywords?, artifacts?, evidence? | 状态迁移 / 补字段 | 校验迁移合法性，**写 events**；迁移到三告警态时供告警路径消费 |
+| `task_create` | title, keywords?, workspace?, project?, parent_id? | 登记任务；title = 一句话名字（≤80 字），编号自动生成 | → `todo`（未分类先落 `inbox`） |
+| `task_update` | id, status?, session_id?, blocked_reason?, decision_question?, decision_options?, keywords?, artifacts?, evidence?, title? | 状态迁移 / 补字段 / 改名（编号不变） | 校验迁移合法性，**写 events**；迁移到三告警态时供告警路径消费 |
 | `task_query` | id | 单任务详情 + 最近 events | — |
 | `task_list` | filter: status / host / project | 任务列表 | — |
 | `board_summary` | — | 仪表盘计数 + 高亮项（running / waiting_decision / blocked / review） | — |
@@ -157,7 +159,7 @@ events(                           -- 审计流水，只追加
 
 owner skill 内置路由决策树（v1 核心）：
 
-1. **显式编号**（"#12" / "tp-12"）→ 直达该任务；
+1. **显式编号**（"#12" / "tp-12" / "tp-0012"）→ 直达该任务；
 2. **关键词精确匹配**（任务带 `keywords` 别名字段，见 §4）；
 3. **模糊匹配**：候选唯一且任务活跃 → 附确认执行（"按 #12 处理"）；
 4. **候选多个或不确定** → 列出候选（编号+标题）让用户选，**绝不猜**；

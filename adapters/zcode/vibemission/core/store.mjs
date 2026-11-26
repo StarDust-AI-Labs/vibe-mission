@@ -6,6 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { TaskPierError, Codes } from './errors.mjs';
+import { formatDisplayId } from './format.mjs';
 
 const DDL = `
 CREATE TABLE IF NOT EXISTS tasks (
@@ -50,7 +51,7 @@ const UPDATABLE_FIELDS = [
 function rowToTask(row) {
   if (!row) return null;
   const task = { ...row, id: Number(row.id), parentId: row.parent_id == null ? null : Number(row.parent_id) };
-  task.displayId = `tp-${task.id}`;
+  task.displayId = formatDisplayId(task.id);
   delete task.parent_id;
   for (const f of JSON_FIELDS) task[f] = JSON.parse(task[f] ?? '[]');
   return task;

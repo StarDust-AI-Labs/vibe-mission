@@ -38,15 +38,16 @@ function parseArgs(argv) {
 }
 
 function renderMessage(task) {
-  const lines = [`【TaskPier】${task.displayId} ${task.title}`];
+  const ref = `#${task.id}`; // chat shorthand; core accepts #N / tp-N / N
+  const lines = [`【VibeMission】${ref} ${task.title}`];
   if (task.status === 'blocked') {
-    lines.push(`⛔ 状态：阻塞`, `原因：${task.blocked_reason ?? '(未填)'}`, `动作：请到 ZCode 解除阻塞（或回复"取消 #${task.id}"）`);
+    lines.push(`⛔ 状态：阻塞`, `原因：${task.blocked_reason ?? '(未填)'}`, `动作：请到 ZCode 解除阻塞（或回复"取消 ${ref}"）`);
   } else if (task.status === 'waiting_decision') {
     lines.push(`❓ 状态：待你拍板`, `问题：${task.decision_question ?? ''}`);
     const opts = Array.isArray(task.decision_options) ? task.decision_options : [];
     if (opts.length) lines.push(`选项：${opts.join(' / ')}（回复选项文字即可）`);
   } else if (task.status === 'review') {
-    lines.push(`✅ 状态：已完成，等验收`, `动作：回复"通过 ${task.displayId}"或"打回 ${task.displayId} + 意见"`);
+    lines.push(`✅ 状态：已完成，等验收`, `动作：回复"通过 ${ref}"或"打回 ${ref} + 意见"`);
   }
   return lines.join('\n');
 }

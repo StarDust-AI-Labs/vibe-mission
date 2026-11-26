@@ -52,16 +52,20 @@ test('board server: /api/board reflects store; / renders page; /api/task returns
 
     const board = await (await fetch(`http://127.0.0.1:${port}/api/board`)).json();
     assert.equal(board.counts.running, 1);
-    assert.equal(board.columns.running[0].displayId, 'tp-1');
+    assert.equal(board.columns.running[0].displayId, 'tp-0001');
+    assert.equal(board.columns.running[0].ref, '#0001');
     assert.equal(board.needsAttention, 0);
 
     const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
     assert.ok(html.includes('TaskPier 任务看板'));
     assert.ok(html.includes('{mode:"api"}'));
 
-    const one = await (await fetch(`http://127.0.0.1:${port}/api/task?id=tp-1`)).json();
-    assert.equal(one.task.title, '看板冒烟任务');
-    assert.ok(one.events.length >= 2); // create + status_change
+    // all accepted ref styles resolve to the same task (# → %23 in a query string)
+    for (const ref of ['tp-1', 'tp-0001', '%231', '%230001']) {
+      const one = await (await fetch(`http://127.0.0.1:${port}/api/task?id=${ref}`)).json();
+      assert.equal(one.task.title, '看板冒烟任务', `ref ${ref}`);
+      assert.ok(one.events.length >= 2); // create + status_change
+    }
   } finally {
     child.kill();
     await new Promise((r) => { child.once('exit', r); setTimeout(r, 3000); });
