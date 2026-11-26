@@ -95,7 +95,7 @@ test('MCP handshake → tools/list → tools/call end to end', async () => {
     clientInfo: { name: 'test-harness', version: '0' },
   });
   assert.equal(init.result.protocolVersion, '2025-11-25');
-  assert.equal(init.result.serverInfo.name, 'taskpier-core');
+  assert.equal(init.result.serverInfo.name, 'vibemission-core');
   assert.equal(init.result.capabilities.tools.listChanged, false);
 
   // 2. initialized notification (no response expected)
