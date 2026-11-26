@@ -180,6 +180,7 @@ vibe-mission/
 ├── channels/feishu/            三态告警推送（幂等）
 ├── docs/                       架构、适配器契约、任务生命周期、ACP 设计、调研
 ├── scripts/                    插件校验 / core 同步 / 发布检查
+├── projects.json               项目索引：意图 → 项目 → 执行目录（workspace）
 └── marketplace.json            ZCode 本地插件市场入口
 ```
 
@@ -190,6 +191,9 @@ vibe-mission/
 ```bash
 git clone https://github.com/StarDust-AI-Labs/vibe-mission.git
 cd vibe-mission
+
+# 意图 → 项目 → 执行目录（派工前必跑）
+node scripts/project-index.mjs --resolve "分享页字号太小"
 
 # 跑测试（core 25 项）
 node --test core/test/*.test.mjs

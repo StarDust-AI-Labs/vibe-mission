@@ -172,6 +172,24 @@ run_id: R-0003
 ```
 原则：**卡片只放决定要不要点开的信息**；细节（证据、流水、风险）在详情页。
 
+### 4.5 执行目录（workspace）从项目索引来，不凭记忆填
+
+任务卡上的 `workspace` 决定子会话在哪个目录干活。它**不是自由文本**，必须来自仓库根的 [`projects.json`](../projects.json)。
+
+**路由规则（派工前必跑）**
+
+1. 用用户原话调 `node scripts/project-index.mjs --resolve "<原话>"`；
+2. 命中唯一项目 → `workspace` 取索引里的值，写进任务卡与派工指令；
+3. 命中多个（`ambiguous`）→ 列候选让人选，**不许猜**；
+4. 未命中（`none`）→ 问人指定目录；登记后把命中词补进 `projects.json` 的 keywords，下次不用再说。
+
+**为什么要有索引**：不同任务的执行目录不同——拾贝在 `D:\shibei-memory-book`，VibeMission 自己在 `D:\aiCoding\projects\vibe-mission`，办公室在 `D:\vibemission-office`。靠记忆填一次错一次，靠索引只维护一处。
+
+**分级关系**：意图 → 任务 → 项目 → 执行目录。项目是任务的属性（`project` 字段），执行目录是项目的属性（`workspace` 字段）；任务卡只记结果，不记推断过程。
+
+**索引维护**：新项目立项时加一条（id / name / product / workspace / keywords）；项目换目录时只改这一处。索引是版本化的配置文件，不是运行时数据库。
+
+
 ---
 
 ## 五、验收标准怎么写（最容易糊的地方）

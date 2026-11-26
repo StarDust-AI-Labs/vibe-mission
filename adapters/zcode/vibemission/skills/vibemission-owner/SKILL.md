@@ -30,11 +30,12 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 
 ## 3. 派工规则（新建任务时）
 
+0. **先定执行目录**：用原话跑 `node scripts/project-index.mjs --resolve "<原话>"`（在 VibeMission 仓根）；`ok` 取 workspace，`ambiguous` 列候选问人，`none` 问人指定并回填 projects.json 关键词。**不许凭记忆填目录。**
 1. 判重（第 2 步第 5 条）
 2. `task_create` 登记：**keywords 必填**（2-5 个，供后续路由），title 一句话可读
 3. 并发上限检查（默认 3）：活跃任务（running/waiting_decision/blocked/review）≥ 上限 → 任务停在 todo，告知用户"已排队，当前第 N 位"，**不派工**
 4. 用宿主会话工具 `CreateSession` 建任务会话，prompt 注入四要素：**任务目标 / 验收标准 / 约束与禁区 / 完成后报告格式**
-5. `task_update`：写 session_id、status=running
+5. `task_update`：写 session_id、workspace、status=running
 6. 回用户："已派工 #N（一句话任务描述）"
 
 ## 4. 跟踪与回报
@@ -120,3 +121,13 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 ```json
 { "name": "decision_answer", "arguments": { "id": 12, "answer": "选改动小", "action": "continue" } }
 ```
+
+## 10. 项目索引与执行目录路由
+
+**分级关系**：用户的意图 → 命中哪个任务 → 任务属于哪个项目 → 该项目在哪个目录执行。
+
+- 索引文件：仓库根 `projects.json`（id / name / product / workspace / keywords），唯一真相；
+- 解析命令：`node scripts/project-index.mjs --resolve "<用户原话>"`，返回 ok / ambiguous / none；
+- 任务卡只记结果（`project` + `workspace`），不记推断过程；
+- 派工指令里的工作区必须等于索引里的 workspace，不一致就停下问人；
+- 新项目立项加一条；项目换目录只改这一处。

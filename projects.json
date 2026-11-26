@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "note": "项目索引：意图 → 任务 → 项目 → 执行目录。改这里即可调整路由，不需要改代码。",
+  "projects": [
+    {
+      "id": "shibei",
+      "name": "拾贝网站",
+      "product": "zcode",
+      "workspace": "D:\\shibei-memory-book",
+      "keywords": ["拾贝", "纪念册", "模板", "分享页", "编辑器", "阅读器", "充值", "短信", "登录", "发版", "生产", "小程序"]
+    },
+    {
+      "id": "vibemission",
+      "name": "VibeMission",
+      "product": "zcode",
+      "workspace": "D:\\aiCoding\\projects\\vibe-mission",
+      "keywords": ["vibemission", "任务管理", "接口人", "任务卡", "任务库", "看板", "插件", "adapter", "owner"]
+    },
+    {
+      "id": "second-brain",
+      "name": "第二大脑",
+      "product": "zcode",
+      "workspace": "D:\\second-brain\\第二大脑",
+      "keywords": ["第二大脑", "知识库", "笔记", "记忆库", "gitee"]
+    },
+    {
+      "id": "vibemission-office",
+      "name": "接口人办公室",
+      "product": "zcode",
+      "workspace": "D:\\vibemission-office",
+      "keywords": ["日报", "周报", "会议纪要", "素材", "草稿", "办公室"]
+    }
+  ]
+}
