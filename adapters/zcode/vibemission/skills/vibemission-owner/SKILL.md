@@ -131,3 +131,16 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 - 任务卡只记结果（`project` + `workspace`），不记推断过程；
 - 派工指令里的工作区必须等于索引里的 workspace，不一致就停下问人；
 - 新项目立项加一条；项目换目录只改这一处。
+
+## 11. 接入新产品时的目录纪律
+
+每接入一个 agent 产品，必须先给它建办公室，再谈派工：
+
+```bash
+node scripts/init-layout.mjs --root "D:ibemission" --products <已有>,<新产品>
+```
+
+- `offices/<新产品>/{inbox,reports}` 只有该产品能写；你（当前产品）不去写别人的；
+- 该项目要在 `projects.json` 登记，`product` 写新产品 id；
+- 任务产出放 `shared/tasks/`，状态进账本；办公室只放叙事材料；
+- 验收清单见 `docs/install.md` §9.3，缺一条不算接入完成。

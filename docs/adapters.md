@@ -79,9 +79,12 @@ interface NotifyPort { }                        // 与 HostAdapter 正交的另�
 
 **明确不做**：微内核、通用插件运行时（YAGNI）。端口先以接口 + 文档存在，ZCode 为第一个实现；第二个适配器落地时回头验证抽象边界（rule of two）。
 
-### 1.3 新宿主接入流水线（标准 6 步）
+### 1.3 新宿主接入流水线（标准 7 步）
 
 ```
+0. 建办公室（强制，见 docs/install.md §9）：
+   node scripts/init-layout.mjs --root "D:ibemission" --products <已有>,<新宿主>
+   并在 projects.json 登记该项目（product = <新宿主>）
 1. Capability Probe（10 分钟）：问 agent "列出你的工具清单" + 查 CLI 形态 → capabilities() 事实依据
 2. 实现 HostAdapter：按探测结果实现端口子集
    Tier 2 → NativeSessionDispatch + ObservePort(hooks) + surface

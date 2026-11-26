@@ -163,3 +163,48 @@ node board/server.mjs                   # 打开 http://127.0.0.1:3210
 | 任务写到意外位置 | 账本路径没改 | 检查 `TASKPIER_DB_PATH` |
 | 派工目录不对 | `projects.json` 没配或关键词不匹配 | 跑 `--resolve` 看命中结果 |
 | 看板打不开 | 没启动服务 | `node board/server.mjs` |
+
+---
+
+## 9. 新增一个 agent 产品（对接时必须做）
+
+每接入一个新产品，**必须按同一套规范给它建办公室**。不是可选步骤：没有办公室的产品，任务产出无处安放，只能写进别人的目录或仓库里。
+
+### 9.1 四步
+
+```bash
+# 1) 建目录（幂等；把新产品追加到列表里，已有的不会被动）
+node scripts/init-layout.mjs --root "D:\vibemission" --products zcode,workbuddy,<新产品>
+
+# 2) 在 projects.json 里登记（product 字段写新产品 id）
+#    例：{ "id": "my-project", "name": "某项目", "product": "<新产品>", "workspace": "D:\code\my-project", "keywords": ["..."] }
+
+# 3) 把适配器放进 adapters/<新产品>/，至少实现 detect + observe（派工可选，见 docs/adapters.md）
+
+# 4) 验证
+node scripts/project-index.mjs --resolve "<一句该产品会接的活>"
+node scripts/install-skill.mjs --check
+```
+
+### 9.2 目录归属
+
+| 路径 | 归属 |
+|---|---|
+| `offices/<新产品>/inbox` | 该产品独占写 |
+| `offices/<新产品>/reports` | 该产品独占写 |
+| `shared/ledger/tasks.sqlite` | 共享，只由接口人经 MCP 写 |
+| `shared/tasks/` | 当前执行产品写，其他产品只读 |
+
+### 9.3 验收清单（缺一条不算接入完成）
+
+- [ ] `offices/<新产品>/{inbox,reports}` 已存在，且**只有该产品在写**
+- [ ] `projects.json` 有至少一条 `product = <新产品>` 的项目，`--resolve` 能命中
+- [ ] 适配器目录 `adapters/<新产品>/` 存在，`docs/adapters.md` 的六步走完
+- [ ] 该产品登记的任务 `product` 字段正确，看板能按产品筛出来
+- [ ] 跨产品转派过一次（或在测试环境演练过），`handoff` 事件可读
+
+### 9.4 不许做的事
+
+1. 把自己的产出写进 `offices/<别的产品>/`；
+2. 绕过账本，直接把任务状态写进 `shared/tasks/` 的说明文件；
+3. 与另一个产品**同时**改同一条任务状态（必须先转派）。
