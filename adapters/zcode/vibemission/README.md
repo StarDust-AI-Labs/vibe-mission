@@ -7,7 +7,7 @@ VibeMission 的 ZCode 宿主实现：工程负责人 skill + 任务库（MCP 工
 - `.zcode-plugin/plugin.json` — 清单（mcpServers → `core/mcp-server.mjs`）
 - `core/` — **构建产物**：由 `scripts/sync-core.mjs` 从仓库顶层 `core/src/` 复制（D14），勿手改
 - `hooks/hooks.json` + `hooks/session-start.mjs` — SessionStart 简报（进程型钩子，无 shell，跨平台）
-- `skills/zcode-task-owner/SKILL.md` — 工程负责人行为规范（owner 的"脑子"）
+- `skills/vibemission-owner/SKILL.md` — 工程负责人行为规范（owner 的"脑子"）
 
 ## 开发流程（plugin-creator 六步，D15）
 

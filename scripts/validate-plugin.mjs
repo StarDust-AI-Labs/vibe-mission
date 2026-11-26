@@ -37,7 +37,7 @@ const fail = (msg) => { problems.push(msg); console.log(`  FAIL ${msg}`); };
 // ---------------- zcode adapter (plugin-marketplace mode) ----------------
 
 function validateZcode() {
-  const pluginRoot = join(repoRoot, 'adapters', 'zcode', 'taskpier');
+  const pluginRoot = join(repoRoot, 'adapters', 'zcode', 'vibemission');
   console.log('\n[zcode adapter]');
 
   // 1. manifest
@@ -50,7 +50,7 @@ function validateZcode() {
     fail(`manifest unreadable: ${e.message}`);
     return;
   }
-  if (manifest.name !== 'taskpier') fail(`manifest.name mismatch: ${manifest.name}`);
+  if (manifest.name !== 'vibemission') fail(`manifest.name mismatch: ${manifest.name}`);
   if (JSON.stringify(manifest).includes('[TODO')) fail('manifest contains [TODO placeholder]');
 
   // 2. ${ZCODE_PLUGIN_ROOT} references resolve inside plugin root
@@ -67,11 +67,11 @@ function validateZcode() {
   });
 
   // 3. skills
-  const skillPath = join(pluginRoot, 'skills', 'zcode-task-owner', 'SKILL.md');
-  if (!existsSync(skillPath)) fail('missing skills/zcode-task-owner/SKILL.md');
+  const skillPath = join(pluginRoot, 'skills', 'vibemission-owner', 'SKILL.md');
+  if (!existsSync(skillPath)) fail('missing skills/vibemission-owner/SKILL.md');
   else {
     const head = readFileSync(skillPath, 'utf8').slice(0, 800);
-    if (!/^---\s*\n[\s\S]*name:\s*zcode-task-owner/.test(head)) fail('SKILL.md frontmatter missing name: zcode-task-owner');
+    if (!/^---\s*\n[\s\S]*name:\s*vibemission-owner/.test(head)) fail('SKILL.md frontmatter missing name: vibemission-owner');
     else if (!/description:/.test(head)) fail('SKILL.md frontmatter missing description');
     else ok('owner SKILL.md frontmatter valid');
   }

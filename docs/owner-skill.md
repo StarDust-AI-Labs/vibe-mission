@@ -4,7 +4,7 @@
 
 ```markdown
 ---
-name: zcode-task-owner          # 装进 zcode 适配器插件
+name: vibemission-owner          # 装进 zcode 适配器插件
 description: 工程负责人：统一管理本宿主所有任务会话…
 ---
 
