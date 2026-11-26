@@ -212,10 +212,13 @@ node scripts/validate-plugin.mjs   # 期望 validate: PASS
 
 线上站点自己保存一份 board JSON，本机推送器把 SQLite 最新数据推上去，页面轮询刷新——部署一次长期可用，不必数据一变就重发快照。静态快照模式继续可用。
 
+默认「按需推送」：看板顶部点「刷新」→ 云端唤醒本机推送器 → 立刻推一次；空闲时不再每 30 秒整包推送，另有 30 分钟兜底。
+
 ```bash
 export BOARD_SITE_URL=https://<hosted-site> BOARD_TOKEN=<token>
 node board/publish.mjs             # 单次推送
-node board/publish.mjs --watch 30  # 每 30 秒推送
+node board/publish.mjs --demand    # 常驻：等「刷新」触发，30 分钟兜底（推荐）
+node board/publish.mjs --watch 30  # 旧做法：每 30 秒推送
 ```
 
 部署步骤、环境变量、安全边界与回退方式见 [docs/hosted-board.md](docs/hosted-board.md)。

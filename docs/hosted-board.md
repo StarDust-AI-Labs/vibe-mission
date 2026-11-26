@@ -8,19 +8,23 @@
 
 | 组件 | 位置 | 职责 |
 |---|---|---|
-| `board/hosted-server.mjs` | 云端（stage 根目录） | 提供 `/`、`/api/board`、`/api/ingest`；原子写 `$DATA_DIR/board.json` |
-| `board/page.html` | 云端（stage 根目录） | 与本地/快照共用同一页面；`mode:'hosted'` 时轮询 `/api/board` |
-| `board/publish.mjs` | 本机 | 读本机账本（`core/src/dbpath.mjs` 解析链）→ POST `${BOARD_SITE_URL}/api/ingest` |
+| `board/hosted-server.mjs` | 云端（stage 根目录） | 提供 `/`、`/api/board`、`/api/ingest`、`/api/refresh`、`/api/refresh-wait`；原子写 `$DATA_DIR/board.json` |
+| `board/page.html` | 云端（stage 根目录） | 与本地/快照共用同一页面；`mode:'hosted'` 时轮询 `/api/board`，顶部「刷新」按钮按需触发推送 |
+| `board/publish.mjs` | 本机 | 读本机账本（`core/src/dbpath.mjs` 解析链）→ POST `${BOARD_SITE_URL}/api/ingest`；`--demand` 模式等待刷新请求 |
 | `start.sh` | 云端（stage 根目录） | `exec node hosted-server.mjs`，监听 `0.0.0.0:$PORT`（默认 3000） |
 
-数据流：
+数据流（按需推送，默认）：
 
 ```
-本机 SQLite ──publish.mjs──POST /api/ingest──▶ 云端 $DATA_DIR/board.json ──▶ 页面每 8s 拉 /api/board
+点「刷新」──POST /api/refresh──▶ 云端 seq+1 ──唤醒──▶ 本机 publish --demand
+                                                      │
+本机 SQLite ──publish.mjs──POST /api/ingest──▶ 云端 $DATA_DIR/board.json ──▶ 页面刷新
 ```
 
 - 首屏：`GET /` 把最新 board JSON 注入 `window.__TASKPIER_BOOT__ = {mode:'hosted', data:...}`，无需等第一次轮询。
 - 轮询：`page.html` 判断 `mode !== 'snapshot'` 后每 8 秒 `fetch('/api/board')`。
+- 按需推送：页面按钮 `POST /api/refresh` 让云端 `refreshSeq+1` 并释放挂起的 `GET /api/refresh-wait`；本机 `publish.mjs --demand` 长期挂着一个 long-poll，被唤醒后立刻推一次。空闲时只有一条挂起连接，不再每 30 秒整包推送。
+- 兜底：`--demand` 默认每 30 分钟也推一次（`--safety-min` / `BOARD_SAFETY_MIN` 可调），用于云端实例重启后 `$DATA_DIR` 被清空、或 long-poll 断线时的自愈。
 - 写入：先写同目录临时文件再 `rename`，读到的 `board.json` 永远是完整 JSON。
 - 零点依赖：只用 Node 内置模块，stage 不需要 `node_modules`。
 
@@ -100,16 +104,20 @@ export BOARD_SITE_URL=https://<hosted-site>
 export BOARD_TOKEN=<token>
 
 node board/publish.mjs             # 单次推送（默认 --once）
-node board/publish.mjs --watch 30  # 立即推一次，之后每 30 秒推一次，Ctrl+C 退出
+node board/publish.mjs --demand    # 先推一次，之后等页面「刷新」触发；兜底每 30 分钟推一次（推荐常驻）
+node board/publish.mjs --watch 30  # 立即推一次，之后每 30 秒推一次（旧做法，仅作兜底/兼容）
 
 # 覆盖环境变量（--db 可选，走 core/src/dbpath.mjs 解析链）
 node board/publish.mjs --url https://... --token ... --db /path/to/taskpier.sqlite
+
+# 兜底间隔可调：--safety-min 10 或 BOARD_SAFETY_MIN=10
+node board/publish.mjs --demand --safety-min 10
 ```
 
 - token 优先用环境变量：`--token` 会出现在进程列表（`ps`）里。
 - 退出码：`0` 成功；`1` 配置缺失/非法；`2` 推送失败（HTTP 或网络）；`3` 账本打开失败。
-- `--watch` 模式下单次推送失败只记日志并继续重试（打印连续失败次数），不会退出；收到 SIGINT/SIGTERM 正常退出 0。
-- 长期运行建议：本机常驻 `--watch 30`；或用 cron 每 5 分钟跑一次 `--once` 兜底（token 放本机受控文件并 `export BOARD_TOKEN="$(cat ~/.secrets/board-token)"`，不要写进仓库）。
+- `--watch` / `--demand` 下单次推送失败只记日志并继续重试（`--demand` 指数退避，最长 30 秒一次），不会退出；收到 SIGINT/SIGTERM 正常退出 0。
+- 长期运行建议：本机常驻 `--demand`（空闲时只挂一条 long-poll，不整包推送）；网络差或需要固定节奏时退回 `--watch 30`；也可用 cron 每 5 分钟跑一次 `--once` 兜底（token 放本机受控文件并 `export BOARD_TOKEN="$(cat ~/.secrets/board-token)"`，不要写进仓库）。
 
 ## 安全与可见性
 
@@ -125,8 +133,8 @@ node board/publish.mjs --url https://... --token ... --db /path/to/taskpier.sqli
 
 ## 已知限制
 
-- **近实时不等于实时**：数据新鲜度 = 推送间隔 + 页面 8 秒轮询；不是 WebSocket 推送。
-- **`$DATA_DIR` 是临时存储**：实例重启或重新部署会清空 `board.json`，`--watch` 会在一轮内补回；本机长时间离线期间云端显示旧数据（直到下一次成功推送）。
-- **共享页面文案**：hosted 模式复用 `page.html`，底栏仍显示“本地实时 · 每 8 秒自动刷新”，功能正常但文字不精确；如需区分需另行改页面。
+- **按需推送不是实时**：数据新鲜度 = 点「刷新」后一次唤醒 + 页面 8 秒轮询；不点刷新时只靠 30 分钟兜底推送。页面顶部按钮在手机端推送器未运行时会在 30 秒后提示「手机端未响应」。
+- **`$DATA_DIR` 是临时存储**：实例重启或重新部署会清空 `board.json`；`--demand` 启动即推一次，且每 30 分钟兜底一次，通常能自愈；本机长时间离线期间云端显示旧数据（直到下一次成功推送）。
+- **`/api/refresh` 无鉴权**：任何人点按钮最多让本机多推一次公开数据，不会泄露账本内容；如需限制可给该路由加 token（目前未做）。
 - **ZCode Sites 无平台级环境变量注入**：`BOARD_TOKEN` 目前只能写在部署时的 `start.sh` 里（见上文），换用其他平台可直接注入环境变量。
 - 本项目测试只覆盖本机进程内/子进程验证；真实云实例上的部署、公网访问与 token 配置需上线时人工验证。

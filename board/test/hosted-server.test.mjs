@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHostedServer } from '../hosted-server.mjs';
+import { waitForRefresh } from '../publish.mjs';
 import { buildBoardData } from '../data.mjs';
 import { openStore } from '../../core/src/store.mjs';
 
@@ -32,8 +33,8 @@ afterEach(async () => {
   rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 150 });
 });
 
-async function startServer(dataDir) {
-  const server = createHostedServer({ dataDir, token: TOKEN });
+async function startServer(dataDir, opts = {}) {
+  const server = createHostedServer({ dataDir, token: TOKEN, ...opts });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
@@ -145,6 +146,8 @@ test('hosted board: GET / injects hosted boot data into page.html', async () => 
   assert.ok(html.includes('托管模式任务'), 'current board data injected');
   assert.ok(!html.includes('/*__BOOT__*/null'), 'boot marker replaced');
   assert.ok(html.includes("boot.mode === 'snapshot'"), 'page polling branch intact');
+  assert.ok(html.includes('id="refreshBtn"'), 'refresh button present');
+  assert.ok(html.includes('/api/refresh'), 'refresh endpoint wired in page');
 });
 
 test('hosted board: invalid JSON and invalid shape -> 400, oversize -> 413', async () => {
@@ -198,4 +201,65 @@ test('publish.mjs: pushes local ledger once; bad token exits 2; missing url exit
   const noUrl = await runPublish(['--db', ledger]);
   assert.equal(noUrl.code, 1);
   assert.match(noUrl.stderr, /缺少站点地址/);
+});
+
+test('refresh: a click releases the held long-poll', async () => {
+  const s = await startServer(dir, { refreshWaitMs: 5000 });
+  cur = s;
+
+  const held = fetch(`${s.base}/api/refresh-wait?since=0`).then((r) => r.json());
+  await new Promise((r) => setTimeout(r, 100));
+
+  const click = await (await fetch(`${s.base}/api/refresh`, { method: 'POST' })).json();
+  assert.equal(click.ok, true);
+  assert.equal(click.seq, 1);
+
+  assert.deepEqual(await held, { seq: 1 });
+});
+
+test('refresh-wait: stale since answers immediately', async () => {
+  const s = await startServer(dir, { refreshWaitMs: 5000 });
+  cur = s;
+
+  await fetch(`${s.base}/api/refresh`, { method: 'POST' });
+  const t0 = Date.now();
+  const res = await (await fetch(`${s.base}/api/refresh-wait?since=0`)).json();
+  assert.equal(res.seq, 1);
+  assert.ok(Date.now() - t0 < 1000, 'did not hold the request');
+});
+
+test('refresh-wait: matching since times out with the same seq', async () => {
+  const s = await startServer(dir, { refreshWaitMs: 120 });
+  cur = s;
+
+  const res = await (await fetch(`${s.base}/api/refresh-wait?since=0`)).json();
+  assert.equal(res.seq, 0);
+  assert.equal(res.timeout, true);
+});
+
+test('refresh-wait: a restarted server (seq reset) triggers a push', async () => {
+  const s = await startServer(dir, { refreshWaitMs: 5000 });
+  cur = s;
+
+  // The publisher remembers a higher seq from before the restart.
+  const res = await (await fetch(`${s.base}/api/refresh-wait?since=7`)).json();
+  assert.equal(res.seq, 0);
+});
+
+test('publish.mjs: waitForRefresh returns the bumped seq after a click', async () => {
+  const s = await startServer(dir, { refreshWaitMs: 5000 });
+  cur = s;
+
+  const pending = waitForRefresh({ url: s.base, since: 0, timeoutMs: 4000 });
+  await new Promise((r) => setTimeout(r, 100));
+  await fetch(`${s.base}/api/refresh`, { method: 'POST' });
+  assert.equal(await pending, 1);
+});
+
+test('refresh endpoints reject wrong methods', async () => {
+  const s = await startServer(dir);
+  cur = s;
+
+  assert.equal((await fetch(`${s.base}/api/refresh`)).status, 405);
+  assert.equal((await fetch(`${s.base}/api/refresh-wait?since=0`, { method: 'POST' })).status, 405);
 });
