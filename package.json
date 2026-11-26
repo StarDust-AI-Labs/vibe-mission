@@ -1,5 +1,5 @@
 {
-  "name": "vibemission",
+  "name": "vibe-mission",
   "version": "0.0.0",
   "private": true,
   "description": "VibeMission - one AI interface for all your agent tasks: a local task store managed by an owner agent, so you never switch between agent products to chase status. Host-agnostic, MCP-first.",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/StarDust-AI-Labs/taskpier.git"
+    "url": "git+https://github.com/StarDust-AI-Labs/vibe-mission.git"
   },
   "keywords": [
     "mcp",
