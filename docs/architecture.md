@@ -97,6 +97,7 @@
 - owner 与 Bot 是**一体两面**：同一个 Bot，戴上 owner 角色。不是两个机器人。
 - 入口会话 ≠ 任务会话：入口只做接待/路由/汇报，任务会话才承载执行。
 - 任务会话里的 agent 不是 owner：prompt 固定声明“你是执行会话，不是 owner；不登记、不派工、不建子会话”，防止递归派工。
+- **入口会话不执行高延迟任务**：PR 评审、构建/测试、发布/部署、批量导入/清理、长分析/调研等，一律派到任务会话执行；入口只回「已派 #N 名字」并保持即时可回复。
 
 **能力前提**：owner 角色依赖三样东西——`vibemission-owner` 技能已加载、VibeMission MCP 可用、宿主会话工具（`CreateSession` / `RenameSession` / `SendToSession` …）可用。缺任何一项，Bot 只是普通 Bot，不是 owner。
 

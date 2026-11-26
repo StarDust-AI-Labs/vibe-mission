@@ -30,6 +30,7 @@ description: 工程负责人：统一管理本宿主所有任务会话…
 `task_create` 拿 #N → `CreateSession` 建独立任务会话 → `RenameSession("[#N] 名字")`
 → `task_update(session_id=任务会话, status=running)` → 回执「已派工 #N 名字」。
 入口会话只做接待/路由/汇报；任务会话 prompt 固定声明“执行者，不是 owner，不登记/不派工/不建子会话”。
+**入口会话不执行高延迟任务**（PR 评审、构建/测试、发布/部署、批量导入/清理、长分析等），一律派子任务。
 
 ## 4. 派工规则
 1. 判重（相似活跃任务 → 先问）
