@@ -1,6 +1,6 @@
 {
   "name": "vibe-mission",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "private": true,
   "description": "VibeMission - one AI interface for all your agent tasks: a local task store managed by an owner agent, so you never switch between agent products to chase status. Host-agnostic, MCP-first.",
   "license": "MIT",
