@@ -214,6 +214,7 @@ node scripts/validate-plugin.mjs   # 期望 validate: PASS
 | 文档 | 内容 |
 |---|---|
 | [Mission 生命周期与任务卡](docs/mission-lifecycle.md) | 三层模型、六阶段准入、任务卡字段、验收标准写法、立项流水线与统一汇报 |
+| [目录、任务与记忆边界](docs/workspace-and-memory.md) | 办公室/执行目录/代码仓的分工；多产品共用账本与目录的规则 |
 | [适配器契约](docs/adapters.md) | Tier 0/1/2 能力阶梯、端口定义、新宿主接入六步 |
 | [adapter-acp](docs/adapter-acp.md) | 通用派工插头的设计理念：只翻译不做业务、能力声明与降级 |
 | [同类项目调研](docs/research/2026-11-24-prior-art.md) | AgentRQ / Vibe Kanban / Backlog.md 等 10 个项目对比 |

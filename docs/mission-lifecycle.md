@@ -189,6 +189,8 @@ run_id: R-0003
 
 **索引维护**：新项目立项时加一条（id / name / product / workspace / keywords）；项目换目录时只改这一处。索引是版本化的配置文件，不是运行时数据库。
 
+**多产品边界**：账本可以共用（`product` 字段区分），可写目录不能共用——详见 [目录、任务与记忆边界](workspace-and-memory.md)。
+
 
 ---
 
