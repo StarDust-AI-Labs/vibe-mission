@@ -1,6 +1,8 @@
 # Architecture
 
 > Status: v0 draft (2026-11-18). Working language: Chinese; English translation comes with v1.
+>
+> 设计理念（角色模型、窗口≠任务、逐条归属、原则与反模式）见 [design-philosophy.md](design-philosophy.md)。
 
 ## 1. 目标与非目标
 
