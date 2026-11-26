@@ -70,6 +70,36 @@
 
 技术细节：MCP server 是宿主拉起的独立子进程，**拿不到宿主的会话工具**（那些只在 agent 会话的工具列表里）。所以"创建会话"由 owner 会话调用宿主工具完成。**2026-11-19 拍板：v1 即采用此"借用宿主"模式**，不依赖宿主扩展 API；日后若扩展 API（sessions.*）确认对第三方开放，再评估升级（含代批能力）。
 
+### 3.2 角色模型：Bot、owner、入口会话、任务会话
+
+**owner 不是一个独立的 Bot，而是一个角色。** 飞书 Bot 是本体；它在入口会话里加载 `vibemission-owner` 技能后，以 owner 身份工作。
+
+| 名称 | 是什么 | 谁创建 | 职责 |
+|---|---|---|---|
+| 飞书 Bot | ZCode 飞书机器人账号（如“ZCode开发”） | 平台/用户安装 | 收发飞书消息；本体 |
+| owner | 一个角色（工程负责人） | 由 Bot 加载技能后扮演 | 识别意图、登记任务、派工、跟踪、汇报 |
+| 入口会话 | 飞书群/私聊对应的 ZCode 会话 | Bot | 接待用户、路由消息、向用户汇报；**不是任务会话** |
+| 任务会话 | 一条任务的独立执行会话 | **owner**（`CreateSession`） | 执行任务；里面的 agent 是执行者，不是 owner |
+| VibeMission MCP | 任务账本工具进程 | 宿主拉起 | 提供 `task_*` 工具；不是 agent，也不是 Bot |
+
+**从一句话到任务会话：**
+
+1. 用户在飞书发消息 → Bot 在入口会话接住
+2. owner 识别意图：闲聊/问答不登记；明确任务才进入下一步
+3. `task_create` 登记，拿到编号 `#N` 与一句话名字
+4. owner 用 `CreateSession` 创建**独立任务会话**
+5. `RenameSession(任务会话, "[#N] 名字")`；入口会话标题保持「飞书 · 群 · 话题」不改
+6. `task_update(session_id=任务会话, status=running, workspace=…)`
+7. 后续用户消息用 `SendToSession` 路由进任务会话；owner 在入口会话汇报
+
+**三条边界：**
+
+- owner 与 Bot 是**一体两面**：同一个 Bot，戴上 owner 角色。不是两个机器人。
+- 入口会话 ≠ 任务会话：入口只做接待/路由/汇报，任务会话才承载执行。
+- 任务会话里的 agent 不是 owner：prompt 固定声明“你是执行会话，不是 owner；不登记、不派工、不建子会话”，防止递归派工。
+
+**能力前提**：owner 角色依赖三样东西——`vibemission-owner` 技能已加载、VibeMission MCP 可用、宿主会话工具（`CreateSession` / `RenameSession` / `SendToSession` …）可用。缺任何一项，Bot 只是普通 Bot，不是 owner。
+
 ## 4. 任务库（初稿 schema）
 
 ```sql

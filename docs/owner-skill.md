@@ -1,6 +1,10 @@
 # Owner skill — SKILL.md 结构定稿
 
 > Status: v0 draft (2026-11-19)。owner 的行为规范（adapter 的 `skills/` 组件），v1 编码的蓝本。
+>
+> **角色定位**：owner 是一个角色，不是独立 Bot。飞书 Bot 在入口会话中加载本技能后扮演 owner；
+> 它再用 `CreateSession` 创建独立任务会话。入口会话只接待/路由/汇报，任务会话才是执行者。
+> 角色模型见 [architecture.md §3.2](architecture.md#32-角色模型botowner入口会话任务会话)。
 
 ```markdown
 ---
