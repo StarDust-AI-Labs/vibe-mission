@@ -1,12 +1,12 @@
 {
-  "name": "taskpier",
+  "name": "vibemission",
   "interface": {
     "displayName": "VibeMission 任务接口人"
   },
   "plugins": [
     {
-      "name": "taskpier",
-      "source": "./adapters/zcode/taskpier",
+      "name": "vibemission",
+      "source": "./adapters/zcode/vibemission",
       "version": "0.1.0",
       "description": "Unified task hub for this host: owner agent skill, task store (MCP), session-start briefing.",
       "description_i18n": {

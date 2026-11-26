@@ -30,7 +30,7 @@ function briefing() {
     const active = c.running + c.waiting_decision + c.blocked + c.review;
     if (active === 0 && c.todo === 0 && c.inbox === 0) return null; // nothing to say
 
-    const lines = [`【TaskPier 任务态势】执行中 ${c.running} / 待决策 ${c.waiting_decision} / 阻塞 ${c.blocked} / 待验收 ${c.review}（待办 ${c.todo}）`];
+    const lines = [`【VibeMission 任务态势】执行中 ${c.running} / 待决策 ${c.waiting_decision} / 阻塞 ${c.blocked} / 待验收 ${c.review}（待办 ${c.todo}）`];
     if (active > 0) {
       const alerts = store.listByStatus(['waiting_decision', 'blocked', 'review'], 5);
       for (const t of alerts) {

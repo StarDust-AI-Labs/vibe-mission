@@ -117,7 +117,7 @@ interface NotifyPort { }                        // 与 HostAdapter 正交的另�
 开发与分发走 ZCode 官方 **plugin-creator** 流程：
 
 - **插件形态**：`.zcode-plugin/plugin.json` 声明 `skills`（owner 行为规范）/ `hooks`（observe）/ `mcpServers`（任务库工具 + 面板）/ `userConfig`（看板端口等非敏感项）。所有组件路径必须在插件根内。
-- **本地测试市场**：**本仓库根目录即市场**（`marketplace.json`，条目指向 `adapters/zcode/taskpier`）。开源用户 clone 后把仓库路径粘进 ZCode 插件市场即可安装；远程分发用 `git` 源市场（marketplace 支持目录/github/git/url/git-subdir），**不依赖 npm**。
+- **本地测试市场**：**本仓库根目录即市场**（`marketplace.json`，条目指向 `adapters/zcode/vibemission`）。开源用户 clone 后把仓库路径粘进 ZCode 插件市场即可安装；远程分发用 `git` 源市场（marketplace 支持目录/github/git/url/git-subdir），**不依赖 npm**。
 - **交付闭环**：agent 负责生成源码 + 本地校验（JSON 合法性 / 路径越界 / 冒烟测试）；「添加市场 → 安装 → 启用 → 试用」必须由用户在 UI 完成——plugin-creator 原则禁止 agent 代做交接。改码后无热重载，需「刷新市场 + 更新」两步。
 - **接受的硬约束**（官方文档明示）：`userConfig` 的 `sensitive` 字段 UI 输不进也存不了（飞书凭据一律走环境变量或宿主凭据库）；`agents/channels/lspServers/outputStyles/settings` 字段声明但不执行；无 npm/pip 分发。
 - **core 代码落位**：MCP server 必须自包含在插件根内（路径不得越界）。v1 把 core 实现放在插件内，顶层 `core/` 只承载设计与共享约定；等第二个宿主适配器落地时再抽取到顶层，两边 sync。

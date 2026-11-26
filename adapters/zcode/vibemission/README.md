@@ -1,6 +1,6 @@
-# taskpier（ZCode 适配器插件）
+# vibemission（ZCode 适配器插件）
 
-TaskPier 的 ZCode 宿主实现：工程负责人 skill + 任务库（MCP 工具面）+ 会话开始简报钩子。
+VibeMission 的 ZCode 宿主实现：工程负责人 skill + 任务库（MCP 工具面）+ 会话开始简报钩子。
 
 ## 结构
 

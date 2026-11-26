@@ -1,4 +1,4 @@
-// TaskPier — shared DB path resolution chain.
+// VibeMission — shared DB path resolution chain.
 // One source of truth for every process that touches the task store:
 // MCP server, SessionStart hook, board server, snapshot exporter.
 // Order: --db flag > TASKPIER_DB_PATH > ~/.agents/mcp.json (taskpier env)
@@ -20,7 +20,7 @@ export function resolveDbPath(argv = []) {
     const agentMcp = join(homedir(), '.agents', 'mcp.json');
     if (existsSync(agentMcp)) {
       const conf = JSON.parse(readFileSync(agentMcp, 'utf8'));
-      const env = conf?.mcpServers?.taskpier?.env;
+      const env = conf?.mcpServers?.vibemission?.env ?? conf?.mcpServers?.taskpier?.env;
       if (env?.TASKPIER_DB_PATH) return env.TASKPIER_DB_PATH;
     }
   } catch { /* absent or unreadable — fall through */ }

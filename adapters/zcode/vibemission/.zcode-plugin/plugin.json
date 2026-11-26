@@ -1,5 +1,5 @@
 {
-  "name": "taskpier",
+  "name": "vibemission",
   "version": "0.1.0",
   "description": "VibeMission: one AI interface for all tasks on this host - owner agent skill, task store (MCP), session-start briefing hook.",
   "description_i18n": {
@@ -10,7 +10,7 @@
   },
   "license": "MIT",
   "mcpServers": {
-    "taskpier": {
+    "vibemission": {
       "type": "stdio",
       "command": "node",
       "args": [
