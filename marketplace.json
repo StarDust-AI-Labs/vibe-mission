@@ -7,7 +7,7 @@
     {
       "name": "vibemission",
       "source": "./adapters/zcode/vibemission",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Unified task hub for this host: owner agent skill, task store (MCP), session-start briefing.",
       "description_i18n": {
         "zh-CN": "本宿主的统一任务枢纽：工程负责人 skill + 任务库（MCP）+ 会话开始简报。"
