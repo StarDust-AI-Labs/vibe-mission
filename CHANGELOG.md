@@ -3,6 +3,20 @@
 本项目的版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)：`MAJOR.MINOR.PATCH`。
 正式版本以 annotated tag `vX.Y.Z` 标记，发布说明取本文件对应条目。
 
+## v0.3.1 — 2026-11-27
+
+### 新增
+
+- **入向消息聚合与任务会话配置策略总体设计**（[docs/ingress-aggregation.md](docs/ingress-aggregation.md)，v0 待评审）：静默窗口（30s debounce / 120s 硬上限）+ 规则路由先行 + 一次意图抽取（后说覆盖先说）的收敛器机制；任务会话配置策略拍板——AI 自主为默认，重要/大型任务或用户主动要求时用户决定（D21/D22）。
+
+### 修复
+
+- **board snapshot 模板路径移植化**：zcode-site 0.5.1 stage 模板原样 vendor 到 `board/templates/`（`ZCODE_SITE_TEMPLATES` 环境变量可覆盖），移除硬编码本机路径——修复 main 连续三次 Linux CI failure 的根因。
+
+### 验证
+
+- core（27）/ board（9）/ channels（2）/ routing（7）/ workbuddy（7）测试全绿；`validate-plugin` PASS；PR CI（ubuntu-latest）通过。
+
 ## v0.3.0 — 2026-11-27
 
 ### 新增
