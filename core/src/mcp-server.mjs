@@ -16,7 +16,7 @@ import { openStore } from './store.mjs';
 import { buildTools } from './tools.mjs';
 import { TaskPierError } from './errors.mjs';
 
-const SERVER_INFO = { name: 'vibemission-core', version: '0.2.0' };
+const SERVER_INFO = { name: 'vibemission-core', version: '0.3.0' };
 const DEFAULT_PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(['2025-06-18', '2025-11-25']);
 

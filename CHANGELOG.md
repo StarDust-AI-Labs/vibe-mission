@@ -3,6 +3,25 @@
 本项目的版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)：`MAJOR.MINOR.PATCH`。
 正式版本以 annotated tag `vX.Y.Z` 标记，发布说明取本文件对应条目。
 
+## v0.3.0 — 2026-11-27
+
+### 新增
+
+- **hosted board**：`board/hosted-server.mjs` 站点直连账本并支持实时推送；`board/publish.mjs` 本地推送脚本；`docs/hosted-board.md` 与 7 项集成测试。
+- **设计理念（内部实现版）**：`docs/design-philosophy.md`，集中说明角色模型、窗口≠任务、逐条任务归属、入口不执行高延迟任务、十条原则与反模式、代码落点。
+
+### 修复
+
+- hosted board 对超大请求先 drain 再返回 413，避免 `fetch` 偶发 `ECONNRESET`。
+
+### 变更
+
+- 修正 owner 规则表述：入口窗口可承载多个任务；任务归属逐条判断，不按窗口或消息条数默认同一个任务。
+
+### 验证
+
+- core / board / channels / routing / workbuddy 测试全绿；`validate-plugin` PASS。
+
 ## v0.2.0 — 2026-11-26
 
 首个版本化发布（双适配器里程碑，D20）。此后 main 只接受 PR 合入，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
