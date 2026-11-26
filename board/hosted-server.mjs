@@ -5,10 +5,16 @@
 // board data to /api/ingest; the page loads it once via the boot object and then
 // polls /api/board every 8s.
 //
+// Demand push (default for the publisher): the page's「刷新」button POSTs
+// /api/refresh, which bumps a counter and releases a held
+// GET /api/refresh-wait long-poll on the local publisher, so the push happens
+// on demand instead of on a fixed 30s loop.
+//
 // Env:
-//   PORT          listen port (default 3000)
-//   BOARD_TOKEN   required for /api/ingest; unset means ingest is closed
-//   DATA_DIR      directory holding board.json (default /data)
+//   PORT             listen port (default 3000)
+//   BOARD_TOKEN      required for /api/ingest; unset means ingest is closed
+//   DATA_DIR         directory holding board.json (default /data)
+//   REFRESH_WAIT_MS  how long /api/refresh-wait holds a request (default 25000)
 //
 // Usage: PORT=3000 BOARD_TOKEN=... node board/hosted-server.mjs
 
@@ -144,9 +150,14 @@ function writeBoardAtomic(dataDir, board) {
 
 /**
  * Build the hosted-mode HTTP server. Exported for tests.
- * @param {{dataDir?: string, token?: string, pagePath?: string}} [opts]
+ * @param {{dataDir?: string, token?: string, pagePath?: string, refreshWaitMs?: number}} [opts]
  */
-export function createHostedServer({ dataDir = process.env.DATA_DIR || '/data', token = process.env.BOARD_TOKEN, pagePath = PAGE_PATH } = {}) {
+export function createHostedServer({
+  dataDir = process.env.DATA_DIR || '/data',
+  token = process.env.BOARD_TOKEN,
+  pagePath = PAGE_PATH,
+  refreshWaitMs = Number(process.env.REFRESH_WAIT_MS ?? 25000),
+} = {}) {
   const page = readFileSync(pagePath, 'utf8');
   if (!page.includes(BOOT_MARKER)) {
     throw new Error(`page.html missing boot marker ${BOOT_MARKER}: ${pagePath}`);
@@ -165,6 +176,35 @@ export function createHostedServer({ dataDir = process.env.DATA_DIR || '/data', 
   const sendJson = (res, status, obj, extra = {}) => {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extra });
     res.end(JSON.stringify(obj));
+  };
+
+  // Demand push: the page asks once (POST /api/refresh); the local publisher
+  // holds GET /api/refresh-wait open until that click, then pushes. No fixed
+  // 30s push loop is needed — one idle long-poll replaces it.
+  let refreshSeq = 0;
+  const waiters = new Set(); // { res, since, timer }
+
+  const flushWaiters = () => {
+    for (const w of [...waiters]) {
+      if (refreshSeq === w.since) continue;
+      waiters.delete(w);
+      clearTimeout(w.timer);
+      sendJson(w.res, 200, { seq: refreshSeq });
+    }
+  };
+
+  const addWaiter = (res, since) => {
+    const w = { res, since, timer: null };
+    w.timer = setTimeout(() => {
+      if (!waiters.delete(w)) return;
+      sendJson(res, 200, { seq: refreshSeq, timeout: true });
+    }, Math.max(0, refreshWaitMs));
+    w.timer.unref?.();
+    waiters.add(w);
+    res.on('close', () => {
+      if (!waiters.delete(w)) return;
+      clearTimeout(w.timer);
+    });
   };
 
   const server = createServer(async (req, res) => {
@@ -230,12 +270,48 @@ export function createHostedServer({ dataDir = process.env.DATA_DIR || '/data', 
       return;
     }
 
+    if (url.pathname === '/api/refresh') {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'method not allowed' }, { allow: 'POST' });
+        return;
+      }
+      // Public on purpose: the worst a stranger can do is ask the owner's
+      // publisher to push a fresh copy of already-public board data.
+      refreshSeq += 1;
+      flushWaiters();
+      sendJson(res, 200, { ok: true, seq: refreshSeq });
+      return;
+    }
+
+    if (url.pathname === '/api/refresh-wait') {
+      if (req.method !== 'GET') {
+        sendJson(res, 405, { error: 'method not allowed' }, { allow: 'GET' });
+        return;
+      }
+      const since = Number(url.searchParams.get('since') ?? '');
+      // Differing seq (a click, or a server restart that reset the counter)
+      // answers immediately so the publisher pushes right away.
+      if (!Number.isFinite(since) || since !== refreshSeq) {
+        sendJson(res, 200, { seq: refreshSeq });
+        return;
+      }
+      addWaiter(res, since);
+      return;
+    }
+
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
     res.end('not found');
   });
 
   server.dataDir = dataDir;
   server.boardPath = boardPath;
+  server.on('close', () => {
+    for (const w of waiters) {
+      clearTimeout(w.timer);
+      w.res.destroy?.();
+    }
+    waiters.clear();
+  });
   return server;
 }
 
