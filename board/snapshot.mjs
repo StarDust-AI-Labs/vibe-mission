@@ -18,7 +18,9 @@ import { buildBoardData } from './data.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..');
-const SKILL_TEMPLATES = 'C:/Users/24424/.zcode/cli/plugins/cache/zcode-plugins-official/zcode-site/0.5.1/skills/site-deploy/templates';
+// ZCode Sites stage 模板：仓内 vendor 副本（见 templates/README.md），不依赖本机
+// 插件缓存；要跟随插件实时版本时用 ZCODE_SITE_TEMPLATES 指向插件模板目录覆盖。
+const SKILL_TEMPLATES = process.env.ZCODE_SITE_TEMPLATES ?? join(HERE, 'templates');
 
 function parseArgs(argv) {
   const get = (flag) => {
