@@ -11,6 +11,7 @@ const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'adapt
 const files = [
   ['core/src/errors.mjs', 'core/errors.mjs'],
   ['core/src/dbpath.mjs', 'core/dbpath.mjs'],
+  ['core/src/format.mjs', 'core/format.mjs'],
   ['core/src/state-machine.mjs', 'core/state-machine.mjs'],
   ['core/src/store.mjs', 'core/store.mjs'],
   ['core/src/tools.mjs', 'core/tools.mjs'],

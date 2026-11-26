@@ -167,23 +167,25 @@ function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<
 function fmtTime(iso){ try { return new Date(iso).toLocaleString('zh-CN',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch { return iso; } }
 
 function actionLine(t){
+  const ref = t.ref || t.displayId;
   if (t.status === 'waiting_decision') {
     const opts = Array.isArray(t.decision_options) ? t.decision_options : [];
-    return opts.length ? `👉 回复选项文字即可：<b>${opts.map(esc).join(' / ')}</b>` : '👉 直接回复你的决定';
+    return opts.length ? `👉 回复选项文字即可：<b>${opts.map(esc).join(' / ')}</b>` : `👉 直接回复你的决定（${esc(ref)}）`;
   }
-  if (t.status === 'blocked') return `👉 到 ZCode 解除阻塞${t.displayId ? `，或回复「取消 <b>${esc(t.displayId)}</b>」` : ''}`;
-  if (t.status === 'review') return `👉 回复「<b>通过 ${esc(t.displayId)}</b>」完成验收，或「打回」附意见`;
+  if (t.status === 'blocked') return `👉 到 ZCode 解除阻塞${ref ? `，或回复「取消 <b>${esc(ref)}</b>」` : ''}`;
+  if (t.status === 'review') return `👉 回复「<b>通过 ${esc(ref)}</b>」完成验收，或「打回 ${esc(ref)}」附意见`;
   return '';
 }
 
 function card(t){
   const bits = [t.host, t.project, t.workspace].filter(Boolean).map(esc).join(' · ');
+  const ref = t.ref || t.displayId;
   const why = t.blocked_reason ? `<div class="why">原因：${esc(t.blocked_reason)}</div>`
             : t.decision_question ? `<div class="why">问题：${esc(t.decision_question)}</div>` : '';
   const act = actionLine(t);
   return `<article class="card ${PILL[t.status]||'run'}">
     <span class="bar"></span>
-    <div class="top"><span class="id mono">${esc(t.displayId)}</span>
+    <div class="top"><span class="id mono" title="${esc(t.displayId)}">${esc(ref)}</span>
       <span class="pill ${PILL[t.status]||'run'}">${GLYPH[t.status]||''} ${LABEL[t.status]||t.status}</span></div>
     <div class="title">${esc(t.title)}</div>
     ${why}${act ? `<div class="act">${act}</div>` : ''}

@@ -21,7 +21,7 @@ afterEach(() => {
 test('insert defaults: todo, empty json arrays', () => {
   const t = store.insertTask({ title: 'fix homepage bug' });
   assert.equal(t.status, 'todo');
-  assert.equal(t.displayId, `tp-${t.id}`);
+  assert.equal(t.displayId, `tp-${String(t.id).padStart(4, '0')}`); // tp-0007 style
   assert.deepEqual(t.keywords, []);
   assert.deepEqual(t.artifacts, []);
   assert.deepEqual(t.evidence, []);

@@ -38,9 +38,9 @@ export function createBoardServer(store) {
       return;
     }
     if (url.pathname === '/api/task') {
-      const id = String(url.searchParams.get('id') ?? '');
-      const m = /^tp-(\d+)$/.exec(id) ?? /^(\d+)$/.exec(id);
-      if (!m) {
+      const raw = String(url.searchParams.get('id') ?? '').trim();
+      const m = /^(?:tp-|#)?0*(\d+)$/.exec(raw);
+      if (!m || Number(m[1]) <= 0) {
         res.writeHead(400, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'invalid id' }));
         return;

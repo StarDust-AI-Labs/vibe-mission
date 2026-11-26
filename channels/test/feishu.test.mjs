@@ -73,7 +73,8 @@ test('--print renders without contacting lark-cli', async () => {
   });
   const out = JSON.parse(stdout);
   assert.equal(out.messages.length, 1);
-  assert.equal(out.messages[0].displayId, `tp-${d.id}`);
+  assert.equal(out.messages[0].displayId, `tp-${String(d.id).padStart(4, '0')}`);
   assert.ok(out.messages[0].message.includes('已完成，等验收'));
-  assert.ok(out.messages[0].message.includes(`通过 ${d.displayId}`));
+  assert.ok(out.messages[0].message.includes(`#${d.id} 待验收任务`), 'header carries #N + name');
+  assert.ok(out.messages[0].message.includes(`通过 #${d.id}`));
 });

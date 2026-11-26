@@ -70,19 +70,52 @@
 
 技术细节：MCP server 是宿主拉起的独立子进程，**拿不到宿主的会话工具**（那些只在 agent 会话的工具列表里）。所以"创建会话"由 owner 会话调用宿主工具完成。**2026-11-19 拍板：v1 即采用此"借用宿主"模式**，不依赖宿主扩展 API；日后若扩展 API（sessions.*）确认对第三方开放，再评估升级（含代批能力）。
 
+### 3.2 角色模型：Bot、owner、入口会话、任务会话
+
+**owner 不是一个独立的 Bot，而是一个角色。** 飞书 Bot 是本体；它在入口会话里加载 `vibemission-owner` 技能后，以 owner 身份工作。
+
+| 名称 | 是什么 | 谁创建 | 职责 |
+|---|---|---|---|
+| 飞书 Bot | ZCode 飞书机器人账号（如“ZCode开发”） | 平台/用户安装 | 收发飞书消息；本体 |
+| owner | 一个角色（工程负责人） | 由 Bot 加载技能后扮演 | 识别意图、登记任务、派工、跟踪、汇报 |
+| 入口会话 | 飞书群/私聊对应的 ZCode 会话 | Bot | 接待用户、路由消息、向用户汇报；**不是任务会话** |
+| 任务会话 | 一条任务的独立执行会话 | **owner**（`CreateSession`） | 执行任务；里面的 agent 是执行者，不是 owner |
+| VibeMission MCP | 任务账本工具进程 | 宿主拉起 | 提供 `task_*` 工具；不是 agent，也不是 Bot |
+
+**从一句话到任务会话：**
+
+1. 用户在飞书发消息 → Bot 在入口会话接住
+2. owner 识别意图：闲聊/问答不登记；明确任务才进入下一步
+3. `task_create` 登记，拿到编号 `#N` 与一句话名字
+4. owner 用 `CreateSession` 创建**独立任务会话**
+5. `RenameSession(任务会话, "[#N] 名字")`；入口会话标题保持「飞书 · 群 · 话题」不改
+6. `task_update(session_id=任务会话, status=running, workspace=…)`
+7. 后续用户消息用 `SendToSession` 路由进任务会话；owner 在入口会话汇报
+
+**入口窗口不是单个任务**：入口会话可以同时承载多个任务线程。每条消息按 `#N`、keywords、上下文判断归属——同一任务的连续消息用 `SendToSession` 续做，不重复建；不同任务各自建/路由，不合并；拿不准先问一次“接着 #N，还是新建任务？”。不按窗口合并任务，也不按消息条数建任务。
+
+**三条边界：**
+
+- owner 与 Bot 是**一体两面**：同一个 Bot，戴上 owner 角色。不是两个机器人。
+- 入口会话 ≠ 任务会话：入口只做接待/路由/汇报，任务会话才承载执行。
+- 任务会话里的 agent 不是 owner：prompt 固定声明“你是执行会话，不是 owner；不登记、不派工、不建子会话”，防止递归派工。
+- **入口会话不执行高延迟任务**：PR 评审、构建/测试、发布/部署、批量导入/清理、长分析/调研等，一律派到任务会话执行；入口只回「已派 #N 名字」并保持即时可回复。
+
+**能力前提**：owner 角色依赖三样东西——`vibemission-owner` 技能已加载、VibeMission MCP 可用、宿主会话工具（`CreateSession` / `RenameSession` / `SendToSession` …）可用。缺任何一项，Bot 只是普通 Bot，不是 owner。
+
 ## 4. 任务库（初稿 schema）
 
 ```sql
 tasks(
-  id TEXT PRIMARY KEY,            -- tp-<n>
-  title TEXT NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, -- 数字任务号；接口展示 tp-0007，口头 #7
+  title TEXT NOT NULL,            -- 一句话名字（动词+对象+结果，硬上限 80 字）
   keywords TEXT,                  -- 路由别名/关键词（JSON 数组，供意图匹配）
-  status TEXT NOT NULL,           -- 8 态，见 status-model.md
+  status TEXT NOT NULL,           -- 9 态，见 status-model.md
   host TEXT,                      -- zcode / claude-code / …
   project TEXT,                   -- 宿主内项目/工作区标识
   session_id TEXT,                -- 宿主任务会话 id（可空）
   workspace TEXT,                 -- 落点目录
-  parent_id TEXT,                 -- 拆解父子关系
+  parent_id INTEGER,              -- 拆解父子关系
   blocked_reason TEXT,
   decision_question TEXT,         -- waiting_decision 时的问题+选项
   decision_options TEXT,
@@ -99,12 +132,14 @@ events(                           -- 审计流水，只追加
 
 数据落点：宿主提供的插件数据目录（如 ZCode 的 `${ZCODE_PLUGIN_DATA}`），不入仓、不上传。
 
+**编号与名字**：`id` 是自增数字，永不变、永不复用；接口/看板展示为 `tp-0007`，聊天口头用 `#7`（解析统一兼容 `7` / `#7` / `#0007` / `tp-7` / `tp-0007`）。`title` 是唯一的人读名字，规则见 owner skill §3.1：一句话、动词+对象+结果、一件事、硬上限 80 字；改名只改 `title`，编号不变，事件里留 `from → to`。
+
 ### 4.1 MCP 工具面（v1 定稿）
 
 | 工具 | 关键入参 | 语义 | 状态约束 |
 |---|---|---|---|
-| `task_create` | title, keywords?, workspace?, project?, parent_id? | 登记任务 | → `todo`（未分类先落 `inbox`） |
-| `task_update` | id, status?, session_id?, blocked_reason?, decision_question?, decision_options?, keywords?, artifacts?, evidence? | 状态迁移 / 补字段 | 校验迁移合法性，**写 events**；迁移到三告警态时供告警路径消费 |
+| `task_create` | title, keywords?, workspace?, project?, parent_id? | 登记任务；title = 一句话名字（≤80 字），编号自动生成 | → `todo`（未分类先落 `inbox`） |
+| `task_update` | id, status?, session_id?, blocked_reason?, decision_question?, decision_options?, keywords?, artifacts?, evidence?, title? | 状态迁移 / 补字段 / 改名（编号不变） | 校验迁移合法性，**写 events**；迁移到三告警态时供告警路径消费 |
 | `task_query` | id | 单任务详情 + 最近 events | — |
 | `task_list` | filter: status / host / project | 任务列表 | — |
 | `board_summary` | — | 仪表盘计数 + 高亮项（running / waiting_decision / blocked / review） | — |
@@ -157,7 +192,7 @@ events(                           -- 审计流水，只追加
 
 owner skill 内置路由决策树（v1 核心）：
 
-1. **显式编号**（"#12" / "tp-12"）→ 直达该任务；
+1. **显式编号**（"#12" / "tp-12" / "tp-0012"）→ 直达该任务；
 2. **关键词精确匹配**（任务带 `keywords` 别名字段，见 §4）；
 3. **模糊匹配**：候选唯一且任务活跃 → 附确认执行（"按 #12 处理"）；
 4. **候选多个或不确定** → 列出候选（编号+标题）让用户选，**绝不猜**；

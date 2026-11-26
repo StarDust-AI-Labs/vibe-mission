@@ -1,6 +1,8 @@
 // TaskPier board — shared data builder for the live server and the snapshot
 // exporter. Pure read over the store; no transport concepts.
 
+import { formatHashRef } from '../core/src/format.mjs';
+
 const STATUS_ORDER = [
   'running', 'waiting_decision', 'blocked', 'review',
   'todo', 'inbox', 'done', 'failed', 'cancelled',
@@ -30,6 +32,7 @@ export function buildBoardData(store, { limit = 500 } = {}) {
     if (!columns[t.status]) continue;
     columns[t.status].push({
       displayId: t.displayId,
+      ref: formatHashRef(t.id, { padded: true }), // #0007 — card token
       title: t.title,
       host: t.host ?? undefined,
       project: t.project ?? undefined,

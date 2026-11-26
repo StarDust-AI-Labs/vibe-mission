@@ -115,16 +115,58 @@ test('decision_answer on non-waiting task rejected', () => {
   );
 });
 
-test('id formats: tp-N and N both work; unknown id → task_not_found', () => {
+test('id formats: tp-N, tp-0NNN, #N, #0NNN and N all work; unknown id → task_not_found', () => {
   const { task } = tools.handlers.task_create({ title: 'x' });
-  const a = tools.handlers.task_query({ id: `tp-${task.id}` });
-  const b = tools.handlers.task_query({ id: task.id });
-  assert.equal(a.task.id, b.task.id);
+  const padded = `tp-${String(task.id).padStart(4, '0')}`;
+  for (const ref of [`tp-${task.id}`, padded, `#${task.id}`, `#${String(task.id).padStart(4, '0')}`, task.id, String(task.id)]) {
+    const got = tools.handlers.task_query({ id: ref });
+    assert.equal(got.task.id, task.id, `ref ${ref}`);
+    assert.equal(got.task.displayId, padded);
+  }
   assert.throws(
     () => tools.handlers.task_query({ id: 'tp-99999' }),
     (e) => e.code === 'task_not_found',
   );
   assert.throws(() => tools.handlers.task_query({ id: 'bogus' }), (e) => e.code === 'invalid_input');
+});
+
+test('title is a one-line name: trimmed, blank rejected, 80-char cap', () => {
+  const { task } = tools.handlers.task_create({ title: '  修复分享页手机字号  ' });
+  assert.equal(task.title, '修复分享页手机字号'); // trimmed
+
+  assert.throws(
+    () => tools.handlers.task_create({ title: '   ' }),
+    (e) => e.code === 'invalid_input',
+  );
+  assert.throws(
+    () => tools.handlers.task_create({ title: 'x'.repeat(81) }),
+    (e) => e.code === 'invalid_input',
+  );
+  const ok = tools.handlers.task_create({ title: 'x'.repeat(80) });
+  assert.equal(ok.task.title.length, 80);
+
+  // same rules on update
+  assert.throws(
+    () => tools.handlers.task_update({ id: task.id, title: '   ' }),
+    (e) => e.code === 'invalid_input',
+  );
+  assert.throws(
+    () => tools.handlers.task_update({ id: task.id, title: 'y'.repeat(81) }),
+    (e) => e.code === 'invalid_input',
+  );
+  const renamed = tools.handlers.task_update({ id: task.id, title: ' 放大分享页正文手机字号 ' });
+  assert.equal(renamed.task.title, '放大分享页正文手机字号');
+});
+
+test('title rename records from→to provenance in field_update event', () => {
+  const { task } = tools.handlers.task_create({ title: '旧名字' });
+  tools.handlers.task_update({ id: task.id, title: '新名字', actor: 'user' });
+  const { events } = tools.handlers.task_query({ id: task.id });
+  const rename = events.find((e) => e.kind === 'field_update' && e.payload.fields.includes('title'));
+  assert.ok(rename, 'title field_update event exists');
+  assert.equal(rename.payload.from, '旧名字');
+  assert.equal(rename.payload.to, '新名字');
+  assert.equal(rename.actor, 'user');
 });
 
 test('board_summary counts and highlights', () => {

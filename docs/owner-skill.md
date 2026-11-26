@@ -1,6 +1,10 @@
 # Owner skill — SKILL.md 结构定稿
 
 > Status: v0 draft (2026-11-19)。owner 的行为规范（adapter 的 `skills/` 组件），v1 编码的蓝本。
+>
+> **角色定位**：owner 是一个角色，不是独立 Bot。飞书 Bot 在入口会话中加载本技能后扮演 owner；
+> 它再用 `CreateSession` 创建独立任务会话。入口会话只接待/路由/汇报，任务会话才是执行者。
+> 角色模型见 [architecture.md §3.2](architecture.md#32-角色模型botowner入口会话任务会话)。
 
 ```markdown
 ---
@@ -18,15 +22,26 @@ description: 工程负责人：统一管理本宿主所有任务会话…
 3. 向用户一句话报到：当前态势 + 是否有待决策
 
 ## 3. 意图路由（architecture.md §6.4 决策树）
-显式编号 → keywords 匹配 → 模糊唯一附确认 → 多候选让用户选（绝不猜）
+显式编号（#12 / tp-12 / tp-0012）→ keywords 匹配 → 模糊唯一附确认 → 多候选让用户选（绝不猜）
 → 判重新建。命中既有任务 = SendToSession 原会话续做；原会话失效 = 报告并问。
+只有明确任务才登记；提问、闲聊、纯查询不登记。
+
+**A 方案（默认）**：飞书群/私聊的会话由 bot 创建，只是入口会话，不是任务会话。明确任务时
+`task_create` 拿 #N → `CreateSession` 建独立任务会话 → `RenameSession("[#N] 名字")`
+→ `task_update(session_id=任务会话, status=running)` → 回执「已派工 #N 名字」。
+入口会话只做接待/路由/汇报；任务会话 prompt 固定声明“执行者，不是 owner，不登记/不派工/不建子会话”。
+**入口会话不执行高延迟任务**（PR 评审、构建/测试、发布/部署、批量导入/清理、长分析等），一律派子任务。
+**入口窗口不是单个任务**：可以同时承载多个任务线程；每条消息按 #N/keywords/上下文判断归属，同一任务的连续消息续做不重复建，不同任务各自建/路由不合并；拿不准先问一次。
 
 ## 4. 派工规则
 1. 判重（相似活跃任务 → 先问）
-2. task_create 登记（keywords 必填，供后续路由）
+2. task_create 登记：keywords 必填（供后续路由）；title 是一句话名字
+   （动词+对象+结果，4–40 字，硬上限 80；不含编号/群名/日期；一件事一条）
 3. 并发上限检查（默认 3，userConfig）：超限 → 停在 todo 并告知排队位置
-4. CreateSession 建任务会话，prompt 注入：任务目标 + 验收标准 + 约束
-5. task_update(id, session_id, status=running)
+4. CreateSession 建独立任务会话，prompt 注入：执行者身份 + 任务目标 + 验收标准 + 约束
+5. RenameSession(session_id, "[#N] 名字") 覆盖默认标题（工具不可用则跳过）
+6. task_update(id, session_id, status=running)
+7. 回执「已派工 #N 名字」；改名 → task_update(title) + RenameSession，编号不变
 
 ## 5. 跟踪与回报
 - WaitSessions 批量等待（mode:any 轮询活跃任务）
