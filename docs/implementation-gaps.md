@@ -17,7 +17,7 @@
 | **会话恢复引导** | SessionStart 每次注入态势 | ❌ **运行期钩子指向已删除的旧路径**，失败静默退出 0 | **断线** | **P0** |
 | **owner skill 与设计一致** | 运行时 = 仓库 = 设计 | ❌ 运行时 146 行（旧版）/ 仓库 215 行（含角色模型全节） | **陈旧** | **P0** |
 | **入口响应性** | ack ≤1s、快通道 ≤5s、禁长等 | ❌ 无入向层；skill §4 仍写 `WaitSessions` 批量长等 | **完全缺失** | **P0** |
-| **入向消息聚合** | 静默窗口 + 规则路由 + 一次抽取 | ❌ `channels/` 仅出向；无 `ingress.mjs`、无测试 | **完全缺失** | **P0** |
+| **入向消息聚合** | 静默窗口 + 规则路由 + 一次抽取 | ⚠️ 仅出向；入口路由 **L0 已落**（`channels/ingress/`，见 [entry-router.md](entry-router.md)），缓冲与接入未做 | **部分落地** | **P0** |
 | burst 审计 | 结算即落库（§3.5） | ❌ `events.task_id NOT NULL REFERENCES tasks(id)` → 建任务前写不进 | schema 阻塞 | P1 |
 | schema 演进 | 可加列 | ❌ 仅 `CREATE TABLE IF NOT EXISTS`，无 ALTER 迁移 | 无迁移机制 | P1 |
 | 入口 → 多任务绑定 | `entry_session_id` / 绑定表 | ❌ DDL 无该字段（design-philosophy §9 自认缺口） | 缺字段 | P1 |
@@ -89,6 +89,7 @@
 - **预期**：ingress-aggregation §3.0–§3.5 —— ack、快速通道、静默窗口、规则路由、一次意图抽取、burst 审计。
 - **现状**：`channels/` 只有 `feishu/notify.mjs`（出向）+ `test/feishu.test.mjs`；无 `ingress.mjs`，无任何入向测试；飞书消息直接进 bot 会话逐条触发推理。
 - **影响**：用户最初提出的痛点（堆积、割裂、改主意作废）一个都没解。
+- **进展（2026-11-27）**：入口路由 **L0 已落地**——`channels/ingress/rules.mjs`（规则表）+ `router.mjs`（纯函数）+ `evaluate.mjs`（语料评估）+ 15 项测试；语料 30 条达 100%/100%/100%（准确率 / L0 覆盖 / 关键类召回）。设计见 [entry-router.md](entry-router.md)。仍未做：静默窗口缓冲、burst 审计、飞书入向接入、L1 轻模型。
 - **实现**：见 §5 PR-B / PR-D。
 
 ---

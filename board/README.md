@@ -21,7 +21,7 @@ node <zcode-site skill>/scripts/zcode-site.mjs deploy .zcode-site/stage   # 发�
 
 - **快照非实时**：页面顶部有生成时间横幅；数据变化后需重跑 snapshot + deploy
 - ⚠️ **公开可见**：任务标题/状态/阻塞原因对任何拿到链接的人可见（用户 2026-11-21 知情选定）；脱敏选项（--redact）留作 v1.x
-- 首次发布：https://taskpier-board-kcuk.zai.site
+- 当前发布：https://vibemission-board-jthf.zai.site（2026-11-27 重新发布；旧 `taskpier-board-kcuk` 链接已停止更新）
 
 ## 测试
 

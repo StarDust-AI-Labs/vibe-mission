@@ -1,0 +1,30 @@
+{"id":"c01","text":"通过 #7","meta":{"chatType":"group","mentioned":true},"label":"reply","critical":true,"note":"拍板：必须由规则兜住，不能建成新任务"}
+{"id":"c02","text":"打回 #7，理由是数据不对","meta":{"chatType":"group","mentioned":true},"label":"reply","critical":true,"note":"拍板反面：误判成新任务会漏掉对原任务的处置"}
+{"id":"c03","text":"#12 的截图再改一版","meta":{"chatType":"group","mentioned":true},"label":"dispatch","critical":false,"note":"引用锚 + 动作词"}
+{"id":"c04","text":"把首页视觉优化做完","meta":{"chatType":"group","mentioned":true},"label":"create","critical":true,"note":"无锚点新任务"}
+{"id":"c05","text":"现在有哪些任务卡住了","meta":{"chatType":"group","mentioned":true},"label":"query","critical":false,"note":"问句 + 账本词汇"}
+{"id":"c06","text":"tp-0037 是什么情况","meta":{"chatType":"group","mentioned":true},"label":"query","critical":false,"note":"引用锚 + 情况"}
+{"id":"c07","text":"停掉所有任务","meta":{"chatType":"group","mentioned":true},"label":"reply","critical":true,"note":"紧急中断：必须绕过缓冲"}
+{"id":"c08","text":"别推了，太吵","meta":{"chatType":"dm"},"label":"reply","critical":true,"note":"紧急：关掉推送"}
+{"id":"c09","text":"为什么你忘了昨天说的上线计划","meta":{"chatType":"group","mentioned":true},"label":"meta","critical":false,"note":"指向系统本身，不碰账本"}
+{"id":"c10","text":"总结一下，你的v0.4方案需要做哪些调整呢","meta":{"chatType":"group","mentioned":true},"label":"meta","critical":false,"note":"关于方案的讨论，不是新任务"}
+{"id":"c11","text":"可以按照金字塔原理介绍下思路吗","meta":{"chatType":"dm"},"label":"reply","critical":false,"note":"问句，无账本词汇"}
+{"id":"c12","text":"继续 #5 的复审","meta":{"chatType":"group","mentioned":true},"label":"dispatch","critical":false,"note":"引用锚 + 继续"}
+{"id":"c13","text":"这周还有哪些待我拍板","meta":{"chatType":"group","mentioned":true},"label":"query","critical":false,"note":"问句 + 哪些"}
+{"id":"c14","text":"把 A-E 批次按默认口径执行","meta":{"chatType":"group","mentioned":true},"label":"create","critical":true,"note":"新任务；含选项字母但不是拍板"}
+{"id":"c15","text":"嗯，按你说的来","meta":{"chatType":"group","mentioned":true,"quoted":true},"label":"dispatch","critical":false,"note":"引用锚 + 照办句式"}
+{"id":"c16","text":"收到","meta":{"chatType":"dm"},"label":"reply","critical":false,"note":"纯确认"}
+{"id":"c17","text":"VibeMission 的规则要不要改一下","meta":{"chatType":"group","mentioned":true},"label":"meta","critical":false,"note":"关于规则，不是改任务"}
+{"id":"c18","text":"发布会要不要提前","meta":{"chatType":"group","mentioned":true},"label":"reply","critical":false,"note":"问句；含发布但不是动作指令"}
+{"id":"c19","text":"帮我登记：明天联系设计师","meta":{"chatType":"group","mentioned":true},"label":"create","critical":true,"note":"显式登记"}
+{"id":"c20","text":"tp-0005 那个 PR 复审结论发我","meta":{"chatType":"group","mentioned":true},"label":"query","critical":false,"note":"引用锚 + 索要信息"}
+{"id":"c21","text":"#38 先不做，缓一缓","meta":{"chatType":"group","mentioned":true},"label":"dispatch","critical":false,"note":"引用锚 + 搁置"}
+{"id":"c22","text":"#31 卡在哪了","meta":{"chatType":"group","mentioned":true},"label":"query","critical":false,"note":"引用锚 + 卡在"}
+{"id":"c23","text":"把 v0.4 文档里那四条改掉","meta":{"chatType":"group","mentioned":true},"label":"create","critical":true,"note":"含\"文档\"但是修改动作，不能判成 meta"}
+{"id":"c24","text":"你觉得计划任务还是常驻进程好","meta":{"chatType":"dm"},"label":"reply","critical":false,"note":"征询意见，不是派任务"}
+{"id":"c25","text":"方案里的分诊判据是不是太严了","meta":{"chatType":"group","mentioned":true},"label":"meta","critical":false,"note":"关于方案本身"}
+{"id":"c26","text":"把 #31 的阻塞原因更新一下","meta":{"chatType":"group","mentioned":true},"label":"dispatch","critical":false,"note":"引用锚 + 更新动作，不是查询"}
+{"id":"c27","text":"回复一下","meta":{"chatType":"group","mentioned":true},"label":"reply","critical":false,"note":"短语式指令，不登记"}
+{"id":"c28","text":"能不能把 #12 的配色再调一下","meta":{"chatType":"group","mentioned":true},"label":"dispatch","critical":false,"note":"请求式（能不能）不是问句"}
+{"id":"c29","text":"清账清单你出还是 owner 出","meta":{"chatType":"dm"},"label":"reply","critical":false,"note":"二选一征询，不是登记任务"}
+{"id":"c30","text":"把今天的会议纪要整理成三条","meta":{"chatType":"group","mentioned":true},"label":"create","critical":false,"note":"新任务"}
