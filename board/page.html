@@ -101,6 +101,11 @@
   .card.blk .bar { box-shadow:0 0 6px var(--lamp-blk); }
   .card .top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .card .id { font-size:12px; color:var(--muted); }
+  .card .copy { margin-left:4px; border:1px solid var(--line); background:transparent;
+    color:var(--muted); border-radius:6px; padding:1px 6px; font-size:11px; cursor:pointer;
+    line-height:1.5; transition:all .15s; }
+  .card .copy:hover { color:var(--brand); border-color:var(--brand); }
+  .card .copy.ok { color:#1a7f37; border-color:#1a7f37; }
   .pill { font-size:11.5px; font-weight:600; padding:1px 9px; border-radius:999px; }
   .pill.run { color:var(--lamp-run); background:color-mix(in srgb, var(--lamp-run) 12%, transparent); }
   .pill.dec { color:var(--lamp-dec); background:color-mix(in srgb, var(--lamp-dec) 14%, transparent); }
@@ -193,7 +198,7 @@ function card(t){
   const act = actionLine(t);
   return `<article class="card ${PILL[t.status]||'run'}">
     <span class="bar"></span>
-    <div class="top"><span class="id mono" title="${esc(t.displayId)}">${esc(ref)}</span>
+    <div class="top"><span class="id mono" title="${esc(t.displayId)}">${esc(ref)}</span><button class="copy" data-copy="${esc(ref)}" title="复制任务编号">复制</button>
       <span class="pill ${PILL[t.status]||'run'}">${GLYPH[t.status]||''} ${LABEL[t.status]||t.status}</span></div>
     <div class="title">${esc(t.title)}</div>
     ${why}${act ? `<div class="act">${act}</div>` : ''}
@@ -237,6 +242,28 @@ function render(d){
     el.querySelector('.wrap').innerHTML = list.length ? list.map(card).join('') : '<div class="empty">暂无记录</div>';
   }
 }
+
+// 卡片上的「复制」按钮：一键复制任务编号（tp-0006 这类），手机端也能用
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.copy');
+  if (!btn) return;
+  const id = btn.dataset.copy || '';
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(id);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = id; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+    const old = btn.textContent;
+    btn.textContent = '已复制'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('ok'); }, 1200);
+  } catch {
+    btn.textContent = '失败'; setTimeout(() => { btn.textContent = '复制'; }, 1200);
+  }
+});
 
 if (isSnap) {
   document.getElementById('modeTag').textContent = '快照';
