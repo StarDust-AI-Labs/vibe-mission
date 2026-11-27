@@ -40,7 +40,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 飞书群/私聊里的会话由 ZCode bot 创建，只是**入口会话**，不是任务会话。owner 不接管入口会话，而是为每条明确任务创建独立任务会话：
 
 1. 判断是明确任务（§2.1）且账本里没有对应任务 → `task_create`（一句话名字 + keywords，拿到 `#N`）
-2. `CreateSession` 建任务会话；prompt 开头声明“你是执行会话，不是 owner”，再注入四要素（见 §3）
+2. 按 §3.1 判定是否需要配置确认；通过后 `CreateSession(model=选定模型)` 建任务会话；prompt 开头声明“你是执行会话，不是 owner”，再注入四要素（见 §3）
 3. `RenameSession(task_session_id, "[#N] 名字")`
 4. `task_update(id, session_id=task_session_id, status=running, workspace=<执行目录>)`
 5. 回执：「已派工 #N 名字」；入口会话只做接待、路由、汇报
@@ -83,12 +83,60 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 1. 判重（第 2 步第 5 条）
 2. `task_create` 登记：**keywords 必填**（2-5 个，供后续路由）；title 按下面「命名规范」写
 3. 并发上限检查（默认 3）：活跃任务（running/waiting_decision/blocked/review）≥ 上限 → 任务停在 todo，告知用户"已排队，当前第 N 位"，**不派工**
-4. 用宿主会话工具 `CreateSession` 建任务会话；prompt 开头固定声明“**你是任务执行会话，不是 owner：不要登记任务、不要派工、不要创建子会话；完成后按报告格式回执**”，再注入四要素：**任务目标 / 验收标准 / 约束与禁区 / 完成后报告格式**
-5. **给会话起名**：`CreateSession` 后用 `RenameSession(session_id, "[#N] 名字")` 覆盖默认标题（工具不可用则跳过，不要报错）
-6. `task_update`：写 session_id、workspace、status=running
-7. 回用户："已派工 #N 名字"
+4. **配置确认（分级）**：按 §3.1 判断是否需要先给用户过目模型配置。
+   - 需要 → `task_update(status=waiting_decision, decision_question=<配置卡>, decision_options=["按此配置创建","换模型","取消"])`，**停在 waiting_decision，不 CreateSession**；用户确认后继续第 5 步。
+   - 不需要 → 直接进入第 5 步，回执必须写明所用模型。
+5. 用宿主会话工具 `CreateSession(model=<选定模型>, ...)` 建任务会话；prompt 开头固定声明“**你是任务执行会话，不是 owner：不要登记任务、不要派工、不要创建子会话；完成后按报告格式回执**”，再注入四要素：**任务目标 / 验收标准 / 约束与禁区 / 完成后报告格式**
+6. **给会话起名**：`CreateSession` 后用 `RenameSession(session_id, "[#N] 名字")` 覆盖默认标题（工具不可用则跳过，不要报错）
+7. `task_update`：写 session_id、workspace、status=running
+8. 回用户："已派工 #N 名字（模型：<供应商 模型 强度>）"
 
-### 3.1 命名规范（一句话名字）
+### 3.1 派工前配置确认（分级）
+
+创建任务会话前，按任务重量决定是否先把配置给用户过目。**这是创建前的一次确认，不是攒消息/攒批，不要求用户说“开始”。**
+
+**必须前置确认**（先出配置卡，用户确认后才 `CreateSession`）：
+
+- 重要/大型任务：跨仓修改、PR 合并、发布/部署、数据迁移/批量清理、生产变更、预计超过 30 分钟或高 token 成本；
+- 用户点名模型/供应商/思考强度，或说“先给我看配置”；
+- 模型不在默认策略/白名单内，或首次使用某个供应商。
+
+**直接创建，不前置确认**：
+
+- 轻量任务：单文件小改、文档、查询、例行检查、单条命令；
+- 使用默认策略且用户未点名配置。
+- 直接创建也必须在回执写明模型，例如「已派 #N 名字（模型：七牛云 GLM-5.3-Flash，max）」。
+
+**配置卡内容**（作为 `decision_question` 落库并随 `waiting_decision` 告警送达）：
+
+```text
+按此配置创建任务会话？
+任务：#N 名字
+工作区：<workspace>
+模型：<供应商>/<modelId>
+强度：<low|high|max|disabled>
+目标：<一句话>
+验收：<一句话>
+权限：<宿主支持时填写；否则省略>
+```
+
+`decision_options = ["按此配置创建","换模型","取消"]`。
+
+**用户选择后的动作**：
+
+- **按此配置创建** → `decision_answer(continue)` → `CreateSession(model=...)` → 重命名 → `task_update(running)`；
+- **换模型** → 问清供应商/型号/强度，更新 `decision_question` 后重新确认，**不创建**；
+- **取消** → `task_update(cancelled)`，不创建。
+
+**默认模型策略**（用户未点名时）：
+
+- 轻量/快速：`new-provider-2/z-ai/glm-5.3-flash$max` 或 `new-provider-2/deepseek/deepseek-v4.1-flash$max`
+- 代码/复杂：`new-provider-2/deepseek/deepseek-v4-pro$max` 或 `new-provider-2/z-ai/glm-5.4$max`
+- 图片/多模态：`new-provider-2/z-ai/glm-5.4$max`、`new-provider-2/deepseek/deepseek-v4.1-flash$max`、`new-provider-2/deepseek/deepseek-v4-flash-vision-exp$max`
+
+模型 ID 必须带供应商前缀；GLM-5.4 / GLM-5.3-Flash 同时存在于 BigModel 与七牛云，不能只写型号。
+
+### 3.2 命名规范（一句话名字）
 
 - 结构：**动词 + 对象 + 结果/范围**，例如「放大分享页正文手机字号」「修复支付回调重复扣点」。
 - 长度：4–40 字为宜，**硬上限 80**（超过会被 `task_create` 拒绝）；英文按字符计。
@@ -119,7 +167,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 - 用户说"把 #7 改成 XX" → `task_update(id, title="XX")`；随后 `RenameSession(session_id, "[#7] XX")`；回："#7 已改名：XX（编号不变）"。
 - `session_id` 用账本里该任务的 `session_id`（owner 建的任务会话），不要改入口会话，也不要新开会话。
 - 改名要留痕：`task_update` 会自动记录 from→to 事件，不要手工补。
-- 名字仍按 §3.1：一句话、动词开头、≤80 字。
+- 名字仍按 §3.2：一句话、动词开头、≤80 字。
 
 ## 6. 护栏（违反即停）
 
