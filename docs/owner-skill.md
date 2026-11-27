@@ -38,10 +38,18 @@ description: 工程负责人：统一管理本宿主所有任务会话…
 2. task_create 登记：keywords 必填（供后续路由）；title 是一句话名字
    （动词+对象+结果，4–40 字，硬上限 80；不含编号/群名/日期；一件事一条）
 3. 并发上限检查（默认 3，userConfig）：超限 → 停在 todo 并告知排队位置
-4. CreateSession 建独立任务会话，prompt 注入：执行者身份 + 任务目标 + 验收标准 + 约束
-5. RenameSession(session_id, "[#N] 名字") 覆盖默认标题（工具不可用则跳过）
-6. task_update(id, session_id, status=running)
-7. 回执「已派工 #N 名字」；改名 → task_update(title) + RenameSession，编号不变
+4. 按 §4.1 判定是否需要配置确认；需要则停在 waiting_decision，用户确认后再 CreateSession(model=选定模型)
+5. CreateSession 建独立任务会话，prompt 注入：执行者身份 + 任务目标 + 验收标准 + 约束
+6. RenameSession(session_id, "[#N] 名字") 覆盖默认标题（工具不可用则跳过）
+7. task_update(id, session_id, status=running)
+8. 回执「已派工 #N 名字（模型：供应商 型号 强度）」；改名 → task_update(title) + RenameSession，编号不变
+
+### 4.1 创建前配置确认（分级）
+- **必须前置确认**：跨仓修改、PR 合并、发布/部署、数据迁移/批量清理、生产变更、预计 >30 分钟或高 token 成本；用户点名模型/强度；模型不在默认策略/白名单。
+- **直接创建**：单文件小改、文档、查询、例行检查、单条命令；使用默认策略且用户未点名。回执仍须写明模型。
+- **配置卡**：任务号+名字 / 工作区 / 供应商+模型 ID / 强度 / 目标 / 验收 / 权限（宿主支持时）；动作 = 按此配置创建、换模型、取消。
+- **流程**：task_update(waiting_decision, decision_question=配置卡, decision_options=…) → 用户确认 → decision_answer(continue) → CreateSession(model=…) → task_update(running)。换模型则更新配置卡重新确认；取消则 task_update(cancelled)。
+- **默认策略**：轻量用 `new-provider-2/z-ai/glm-5.3-flash$max` 或 `.../deepseek-v4.1-flash$max`；复杂用 `.../deepseek-v4-pro$max` 或 `.../glm-5.4$max`；图片用 `.../glm-5.4$max`、`.../deepseek-v4.1-flash$max`、`.../deepseek-v4-flash-vision-exp$max`。模型 ID 必须带供应商前缀，GLM-5.4/5.3-Flash 在 BigModel 与七牛云都有。
 
 ## 5. 跟踪与回报
 - WaitSessions 批量等待（mode:any 轮询活跃任务）
