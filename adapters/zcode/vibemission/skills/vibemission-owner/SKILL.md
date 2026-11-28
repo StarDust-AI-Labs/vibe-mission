@@ -84,12 +84,12 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 2. `task_create` 登记：**keywords 必填**（2-5 个，供后续路由）；title 按下面「命名规范」写
 3. 并发上限检查（默认 3）：活跃任务（running/waiting_decision/blocked/review）≥ 上限 → 任务停在 todo，告知用户"已排队，当前第 N 位"，**不派工**
 4. **配置确认（分级）**：按 §3.1 判断是否需要先给用户过目模型配置。
-   - 需要 → `task_update(status=waiting_decision, decision_question=<配置卡>, decision_options=["按此配置创建","换模型","取消"])`，**停在 waiting_decision，不 CreateSession**；用户确认后继续第 5 步。
+   - 需要 → 先 `task_update(id, status=running)` 占住并发槽（`todo` 只能进 running/cancelled，**不能直接进 waiting_decision**），再 `task_update(id, status=waiting_decision, decision_question=<配置卡>, decision_options=["按此配置创建","换模型","取消"])`，**停在 waiting_decision，不 CreateSession**；用户确认后继续第 5 步。
    - 不需要 → 直接进入第 5 步，回执必须写明所用模型。
-5. 用宿主会话工具 `CreateSession(model=<选定模型>, ...)` 建任务会话；prompt 开头固定声明“**你是任务执行会话，不是 owner：不要登记任务、不要派工、不要创建子会话；完成后按报告格式回执**”，再注入四要素：**任务目标 / 验收标准 / 约束与禁区 / 完成后报告格式**
+5. 用宿主会话工具 `CreateSession(model=<选定模型>, ...)` 建任务会话（model 写法 `providerId/modelId`，取自宿主 `ListModels` 的实际返回值，**不许凭记忆拼**）；prompt 开头固定声明“**你是任务执行会话，不是 owner：不要登记任务、不要派工、不要创建子会话；完成后按报告格式回执**”，再注入四要素：**任务目标 / 验收标准 / 约束与禁区 / 完成后报告格式**
 6. **给会话起名**：`CreateSession` 后用 `RenameSession(session_id, "[#N] 名字")` 覆盖默认标题（工具不可用则跳过，不要报错）
 7. `task_update`：写 session_id、workspace、status=running
-8. 回用户："已派工 #N 名字（模型：<供应商 模型 强度>）"
+8. 回用户："已派工 #N 名字（模型：<供应商 模型 强度>）"——模型名以会话回执里实际读到的为准；宿主忽略或不支持 `model` 参数时如实回执，**不许谎报模型**
 
 ### 3.1 派工前配置确认（分级）
 
@@ -97,7 +97,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 
 **必须前置确认**（先出配置卡，用户确认后才 `CreateSession`）：
 
-- 重要/大型任务：跨仓修改、PR 合并、发布/部署、数据迁移/批量清理、生产变更、预计超过 30 分钟或高 token 成本；
+- 重要/大型任务：跨仓修改、PR 合并、发布/部署、数据迁移/批量清理、生产变更；
 - 用户点名模型/供应商/思考强度，或说“先给我看配置”；
 - 模型不在默认策略/白名单内，或首次使用某个供应商。
 
@@ -105,7 +105,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 
 - 轻量任务：单文件小改、文档、查询、例行检查、单条命令；
 - 使用默认策略且用户未点名配置。
-- 直接创建也必须在回执写明模型，例如「已派 #N 名字（模型：七牛云 GLM-5.3-Flash，max）」。
+- 直接创建也必须在回执写明模型，例如「已派 #N 名字（模型：BigModel GLM-5.3，max）」（以回执实测为准）。
 
 **配置卡内容**（作为 `decision_question` 落库并随 `waiting_decision` 告警送达）：
 
@@ -122,19 +122,18 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 
 `decision_options = ["按此配置创建","换模型","取消"]`。
 
-**用户选择后的动作**：
+**用户选择后的动作**（`decision_answer` 必填 `id` + `answer`，见 §8）：
 
-- **按此配置创建** → `decision_answer(continue)` → `CreateSession(model=...)` → 重命名 → `task_update(running)`；
+- **按此配置创建** → `decision_answer(id=#N, answer="按此配置创建", action="continue")`（continue 已自动把任务置回 running）→ `CreateSession(model=...)` → 重命名 → `task_update(id, session_id=<新会话>, workspace=<执行目录>)`——**不要再带 status=running**，任务已在 running，重复置位会被拒；
 - **换模型** → 问清供应商/型号/强度，更新 `decision_question` 后重新确认，**不创建**；
-- **取消** → `task_update(cancelled)`，不创建。
+- **取消** → `decision_answer(id=#N, answer="取消", action="abort")`，不创建。
 
 **默认模型策略**（用户未点名时）：
 
-- 轻量/快速：`new-provider-2/z-ai/glm-5.3-flash$max` 或 `new-provider-2/deepseek/deepseek-v4.1-flash$max`
-- 代码/复杂：`new-provider-2/deepseek/deepseek-v4-pro$max` 或 `new-provider-2/z-ai/glm-5.4$max`
-- 图片/多模态：`new-provider-2/z-ai/glm-5.4$max`、`new-provider-2/deepseek/deepseek-v4.1-flash$max`、`new-provider-2/deepseek/deepseek-v4-flash-vision-exp$max`
-
-模型 ID 必须带供应商前缀；GLM-5.4 / GLM-5.3-Flash 同时存在于 BigModel 与七牛云，不能只写型号。
+- **本 SKILL 不写死任何供应商/模型 ID**——写死会随供应商增删、欠费封停、换线而失效，别人装完必失配。
+- 派工时用宿主 `ListModels` 现查可用清单，按用途现场选：轻量/快速选 flash 级，代码/复杂选 pro 级，图片/多模态选带视觉的。
+- 本机偏好（哪些供应商/型号优先）属于**每台机器的 preset**，维护在宿主配置或项目记忆里；SKILL 只引用，不硬编码。
+- 模型 ID 必须带供应商前缀（`providerId/modelId`），同型号多供应商在售时不能只写型号；思考强度写法 `modelId$<level>`。
 
 ### 3.2 命名规范（一句话名字）
 
@@ -197,7 +196,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 **三条硬校验（写错会被工具拒绝）**
 
 1. 迁到 `blocked` 必须带 `blocked_reason`；
-2. 迁到 `waiting_decision` 必须带 `decision_question`，建议同时给 `decision_options`；
+2. 迁到 `waiting_decision` 必须带 `decision_question` 和**非空** `decision_options` 数组（缺失或空数组都会被 guard 拒绝）；
 3. `done` 只能由人确认后由你置位——你不能自行判定完成。
 
 **告警判定**：只有 `waiting_decision` / `blocked` / `review` 三个状态会触发通知。以 `task_update` 返回的 `transition.alert` 为准，`true` 才推送，同一任务 10 分钟内不重复推。
