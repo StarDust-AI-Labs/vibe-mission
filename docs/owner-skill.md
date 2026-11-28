@@ -70,3 +70,7 @@ description: 工程负责人：统一管理本宿主所有任务会话…
 ```
 
 要点：规则全部落在 skill 文本，owner 会话本身无状态——**任何会话装载此 skill 并跑完 §2 即完成上任**。
+
+## v1 增补（2026-11-28）：§9 值守会话（Watchdog）模板
+
+仓库 skill（`adapters/zcode/vibemission/skills/vibemission-owner/SKILL.md`）在 §9 新增**值守会话模板**（原 §9–§11 顺延为 §10–§12）。值守 = 「系统盯着系统，异常才找人」：owner 用 `CreateSession` 派独立值守会话跑 `scripts/watchdog.mjs` 巡检循环（会话停摆 / PR 返修要求 / CI 挂），正常静默写报告、异常才分级打扰。模板含标准 prompt 骨架、三不铁律（不代答 / 不派工 / 不改码）、生命周期（被盯任务闭环即解散）与报告路径约定（`offices/<product>/reports/watchdog/YYYY-MM-DD.md`）。设计细节见 [watchdog.md](watchdog.md)。
