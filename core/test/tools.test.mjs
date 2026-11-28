@@ -59,6 +59,47 @@ test('todo → done is illegal (acceptance gate)', () => {
   );
 });
 
+test('todo → waiting_decision is illegal (dispatch gate must occupy slot via running first)', () => {
+  const { task } = tools.handlers.task_create({ title: 'x', keywords: ['x'] });
+  assert.throws(
+    () => tools.handlers.task_update({
+      id: task.id, status: 'waiting_decision',
+      decision_question: '按此配置创建任务会话？', decision_options: ['按此配置创建', '换模型', '取消'],
+    }),
+    (e) => e instanceof TaskPierError && e.code === 'illegal_transition',
+  );
+});
+
+test('config confirm chain: running → waiting_decision → decision_answer(continue) → session writeback', () => {
+  const { task } = tools.handlers.task_create({ title: 'x', keywords: ['x'] });
+  tools.handlers.task_update({ id: task.id, status: 'running' });
+  const { task: waiting, transition } = tools.handlers.task_update({
+    id: task.id, status: 'waiting_decision',
+    decision_question: '按此配置创建任务会话？', decision_options: ['按此配置创建', '换模型', '取消'],
+  });
+  assert.equal(waiting.status, 'waiting_decision');
+  assert.equal(transition.alert, true);
+
+  // decision_answer requires id + answer; action is optional (defaults to continue)
+  assert.throws(
+    () => tools.handlers.decision_answer({ id: task.id, action: 'continue' }),
+    (e) => e instanceof TaskPierError && e.code === 'invalid_input',
+  );
+  const { task: resumed } = tools.handlers.decision_answer({
+    id: task.id, answer: '按此配置创建', action: 'continue',
+  });
+  assert.equal(resumed.status, 'running');
+
+  // post-confirm writeback must not repeat status=running (same-status update is invalid_input)
+  assert.throws(
+    () => tools.handlers.task_update({ id: task.id, status: 'running' }),
+    (e) => e instanceof TaskPierError && e.code === 'invalid_input',
+  );
+  const { task: bound } = tools.handlers.task_update({ id: task.id, session_id: 'sess_x', workspace: 'D:/x' });
+  assert.equal(bound.status, 'running');
+  assert.equal(bound.session_id, 'sess_x');
+});
+
 test('blocked without reason rejected; with reason ok and alert flag set', () => {
   const { task } = tools.handlers.task_create({ title: 'x' });
   tools.handlers.task_update({ id: task.id, status: 'running' });
