@@ -7,6 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { TaskPierError, Codes } from './errors.mjs';
 import { formatDisplayId } from './format.mjs';
+import { migrate } from './migrate.mjs';
 
 const DDL = `
 CREATE TABLE IF NOT EXISTS tasks (
@@ -170,6 +171,85 @@ export class Store {
     return this.listTasks({ status: statuses, limit });
   }
 
+  // ── ④ 回程绑定：入口会话 ↔ 任务 ────────────────────────────────────────────
+
+  /**
+   * Bind a task to the entry session that received it. Re-binding the same pair
+   * only bumps `last_seen_at`, so this is safe to call on every message.
+   * @param {{entrySessionId: string, taskId: number, now?: number}} binding
+   */
+  bindEntrySession({ entrySessionId, taskId, now = Date.now() }) {
+    this.db
+      .prepare(
+        `INSERT INTO entry_session_tasks (entry_session_id, task_id, first_seen_at, last_seen_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(entry_session_id, task_id)
+         DO UPDATE SET last_seen_at = excluded.last_seen_at`,
+      )
+      .run(entrySessionId, Number(taskId), now, now);
+    return { entrySessionId, taskId: Number(taskId), lastSeenAt: now };
+  }
+
+  /**
+   * Tasks bound to an entry session, newest touch first. This is the "回原会话"
+   * lookup: a queued message carries its entry session, the reply goes back there.
+   * @param {string} entrySessionId
+   * @param {{limit?: number}} [opts]
+   */
+  listEntryBindings(entrySessionId, opts = {}) {
+    const limit = opts.limit ?? 20;
+    const rows = this.db
+      .prepare(
+        `SELECT t.* FROM entry_session_tasks b
+         JOIN tasks t ON t.id = b.task_id
+         WHERE b.entry_session_id = ?
+         ORDER BY b.last_seen_at DESC, t.id DESC
+         LIMIT ?`,
+      )
+      .all(entrySessionId, limit);
+    return rows.map(rowToTask);
+  }
+
+  // ── 度量埋点：入口回合 ─────────────────────────────────────────────────────
+
+  /** @param {{entrySessionId?: string|null, startedAt: number, firstReplyAt?: number|null,
+   *           latencyMs?: number|null, dispatchedTaskId?: number|null, outcome?: string}} turn */
+  recordEntryTurn(turn) {
+    const info = this.db
+      .prepare(
+        `INSERT INTO entry_turns (entry_session_id, started_at, first_reply_at, latency_ms, dispatched_task_id, outcome)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        turn.entrySessionId ?? null,
+        Number(turn.startedAt),
+        turn.firstReplyAt ?? null,
+        turn.latencyMs ?? null,
+        turn.dispatchedTaskId ?? null,
+        turn.outcome ?? 'reply',
+      );
+    return Number(info.lastInsertRowid);
+  }
+
+  /** @param {{since?: number|null, limit?: number}} [opts] */
+  listEntryTurns(opts = {}) {
+    const limit = opts.limit ?? 500;
+    if (opts.since != null) {
+      return this.db
+        .prepare('SELECT * FROM entry_turns WHERE started_at >= ? ORDER BY started_at DESC LIMIT ?')
+        .all(Number(opts.since), limit);
+    }
+    return this.db.prepare('SELECT * FROM entry_turns ORDER BY started_at DESC LIMIT ?').all(limit);
+  }
+
+  /** Queue candidates: tasks waiting for a slot. */
+  listQueued(limit = 200) {
+    return this.db
+      .prepare('SELECT * FROM tasks WHERE status = ? ORDER BY created_at ASC, id ASC LIMIT ?')
+      .all('todo', limit)
+      .map(rowToTask);
+  }
+
   /** Idempotent: safe to call multiple times (e.g. tests + teardown hooks). */
   close() {
     if (this.closed) return;
@@ -179,25 +259,50 @@ export class Store {
 }
 
 /**
- * Open (and migrate) the task store.
+ * Open the task store (read/write), applying pending migrations.
+ *
+ * Migration is a write. Any caller that promises "read-only" must use
+ * `openStoreReadOnly` instead — writing through a read-only CLI is exactly the
+ * contradiction that got this flagged in review (2026-11-29).
+ *
  * @param {string} dbPath
+ * @param {{migrate?: boolean}} [options] migrate:false skips DDL + migrations
+ *   (still read/write at the SQLite level — prefer openStoreReadOnly for reads)
  */
-export function openStore(dbPath) {
+export function openStore(dbPath, options = {}) {
   if (typeof DatabaseSync !== 'function') {
     throw new TaskPierError(
       Codes.STORE_ERROR,
       'node:sqlite unavailable — TaskPier core requires Node >= 23.4.0 (unflagged node:sqlite)',
     );
   }
+  const runMigrations = options.migrate !== false;
   try {
     mkdirSync(dirname(dbPath), { recursive: true });
     const db = new DatabaseSync(dbPath);
-    db.exec('PRAGMA journal_mode = WAL;');
     db.exec('PRAGMA foreign_keys = ON;');
-    db.exec(DDL);
+    if (runMigrations) {
+      db.exec('PRAGMA journal_mode = WAL;');
+      db.exec(DDL);
+      // Base tables exist; now bring schema forward (④ 绑定表 + 度量埋点表).
+      migrate(db);
+    }
     return new Store(db);
   } catch (err) {
     if (err instanceof TaskPierError) throw err;
     throw new TaskPierError(Codes.STORE_ERROR, `failed to open store at ${dbPath}: ${err.message}`);
+  }
+}
+
+/**
+ * Open the store without the ability to write anything — no DDL, no migrations.
+ * @param {string} dbPath
+ */
+export function openStoreReadOnly(dbPath) {
+  try {
+    const db = new DatabaseSync(dbPath, { readOnly: true });
+    return new Store(db);
+  } catch (err) {
+    throw new TaskPierError(Codes.STORE_ERROR, `failed to open store read-only at ${dbPath}: ${err.message}`);
   }
 }
