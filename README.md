@@ -179,7 +179,7 @@ vibe-mission/
 ├── board/                      本地看板（server + page + 快照发布）
 ├── channels/feishu/            三态告警推送（幂等）
 ├── docs/                       架构、适配器契约、任务生命周期、ACP 设计、调研
-├── scripts/                    插件校验 / core 同步 / 发布检查
+├── scripts/                    插件校验 / core 同步 / 发布检查 / 看门狗巡检（watchdog）
 ├── projects.json               项目索引：意图 → 项目 → 执行目录（workspace）
 └── marketplace.json            ZCode 本地插件市场入口
 ```
@@ -238,6 +238,7 @@ node board/publish.mjs --watch 30  # 旧做法：每 30 秒推送
 | [适配器契约](docs/adapters.md) | Tier 0/1/2 能力阶梯、端口定义、新宿主接入六步 |
 | [云端 hosted 看板](docs/hosted-board.md) | 云端站点自存 board JSON + 本机推送器的近实时看板：部署、环境变量、安全边界、回退 |
 | [adapter-acp](docs/adapter-acp.md) | 通用派工插头的设计理念：只翻译不做业务、能力声明与降级 |
+| [看门狗值守机制](docs/watchdog.md) | 系统盯着系统：会话停摆 / PR 返修要求 / CI 挂的定时巡检、三不变式、值守会话模板 |
 | [办公室场景图](docs/design/office-scene.html) | 一图：人 → 负责人 → 办公室 → 任务会话（可直接用浏览器打开） |
 | [同类项目调研](docs/research/2026-11-24-prior-art.md) | AgentRQ / Vibe Kanban / Backlog.md 等 10 个项目对比 |
 | [可复用实现清单](docs/research/2026-11-24-reuse-map.md) | 哪些开源件可直接用、许可证红线 |

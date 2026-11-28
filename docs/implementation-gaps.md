@@ -22,7 +22,7 @@
 | schema 演进 | 可加列 | ❌ 仅 `CREATE TABLE IF NOT EXISTS`，无 ALTER 迁移 | 无迁移机制 | P1 |
 | 入口 → 多任务绑定 | `entry_session_id` / 绑定表 | ❌ DDL 无该字段（design-philosophy §9 自认缺口） | 缺字段 | P1 |
 | 配置策略（D22） | 重要/大型 → 用户确认；白名单外 → waiting_decision | ❌ 账本无 `config`/`important`；`projects.json` 无 preset；skill 无规则 | 无落点 | P1 |
-| 告警双通道 | Stop 钩子兜底 | ❌ `hooks.json` 只有 SessionStart；运行期 Stop 只有 ai-memory | 缺一路 | P1 |
+| 告警双通道 | Stop 钩子兜底 | ⚠️ watchdog 定时巡检+停摆检测已落（2026-11-28，见 [watchdog.md](watchdog.md)）；`hooks.json` 只有 SessionStart，运行期 Stop 只有 ai-memory | 部分补齐 | P1 |
 | 并发上限（默认 3） | 超出排队 todo | ⚠️ 仅 skill 文本；`plugin.json` 无 userConfig，core 无校验 | 文本约束 | P1 |
 | 高延迟任务下放 | 入口不执行 | ⚠️ 仓库 skill §2.3 已写，但无客观判据/前置检查 | 文本约束 | P1 |
 | 自动拆解 | `parent_id` 树 | ⚠️ schema 有 `parent_id`，无拆解逻辑 | v1.1 计划内 | P2 |
@@ -138,6 +138,8 @@ design-philosophy §9 自认缺口。DDL 无 `entry_session_id`，也无绑定�
 ### G9 Stop 钩子兜底告警缺失
 
 architecture §4.1 承诺双通道："owner 空闲或任务会话自行结束时，由 Stop 钩子直接调 lark-cli"。实际：`hooks.json` 仅 SessionStart；运行期 `Stop` 只有 ai-memory 一条。
+
+**进展（2026-11-28，任务 #44）：部分补齐。** "无告警定时器"这半边已由 watchdog 值守机制落地——`scripts/watchdog.mjs` 定时巡检会话停摆与 PR/CI，immediate 级经 `notifyWatchdog` 推飞书，正常静默写报告（设计与判据见 [watchdog.md](watchdog.md)，值守会话模板见 owner skill §9）。**Stop 钩子兜底仍未接**，下方实现路径不变。
 
 **实现**：`hooks/stop-notify.mjs`（复用 `notify.mjs` 的 `collect()`/发送逻辑，60s 冷却 + 现有 10 分钟幂等），在 `hooks.json` 与运行期 `config.json` **两处**接线（D17：运行期以 config.json 为准）。需注意 Stop 触发频繁，冷却与幂等缺一不可。
 

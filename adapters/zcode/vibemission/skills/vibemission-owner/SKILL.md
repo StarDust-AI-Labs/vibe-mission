@@ -202,7 +202,56 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 
 **告警判定**：只有 `waiting_decision` / `blocked` / `review` 三个状态会触发通知。以 `task_update` 返回的 `transition.alert` 为准，`true` 才推送，同一任务 10 分钟内不重复推。
 
-## 9. 调用示例
+## 9. 值守会话（Watchdog）模板
+
+「系统盯着系统，异常才找人」：正常静默写报告，异常才分级打扰。设计依据与判据细节见 [docs/watchdog.md](../../../../../docs/watchdog.md)。
+值守会话是 owner 派出的**独立执行会话**，跑 `scripts/watchdog.mjs` 巡检循环盯任务的运行时状态（会话停摆、PR/CI）——这是账本和看板（被动查）之外的主动巡检层。它不是任务容器，也不是入口会话。
+
+### 9.1 拉起方式
+
+1. 监控清单变化（新派任务/任务闭环）→ 更新值守配置（约定放 `offices/<product>/reports/watchdog/config.json`）：
+
+   ```json
+   {
+     "sessions": [{ "name": "#39 支付对账", "sessionId": "sess_0a4e5a6a" }],
+     "logsDir": "C:/Users/24424/.zcode/cli/log",
+     "stallThresholdMinutes": 10,
+     "repos": [{ "owner": "StarDust-AI-Labs", "name": "vibe-mission", "branches": ["feat/x"] }]
+   }
+   ```
+
+2. `CreateSession` 建值守会话（轻量默认模型即可），`RenameSession(session_id, "[watchdog] YYYY-MM-DD")`；prompt 用 §9.2 骨架，监控清单写进去。
+3. 轮询节奏建议 **15–30 分钟一轮**；不要在入口会话里跑值守（入口保持即时可回复，见 §2.3）。
+4. 被盯任务闭环时从配置移除对应条目——监控清单只含活跃任务。
+
+### 9.2 标准 prompt 骨架（CreateSession 时注入）
+
+```text
+你是 VibeMission 值守会话（Watchdog），不是 owner、不是任务会话：
+不登记任务、不派工、不创建子会话。
+监控清单（脚本配置已写好，不要凭记忆改）：<sessions / repos>
+每轮执行：node scripts/watchdog.mjs --config <config.json> --format md
+停摆判据以脚本报告为准；你只转述报告里的可验证事实（日志时间戳、PR/CI 链接），
+不自行推断"可能挂了"，也不重复跑检查以外的动作。
+报告唯一出口：stdout 报告原样追加到 offices/<product>/reports/watchdog/YYYY-MM-DD.md
+（每轮一段，行首加时间戳；无发现也写「本轮无发现」——留痕即报告）。
+需要 owner 处理的发现（severity=immediate：session_stall / pr_changes_requested /
+ci_failed）→ 调 channels/feishu/notify.mjs 的 notifyWatchdog 推送；
+同一发现（type:object）上轮已推且无变化 → 本轮放进 suppressKeys，不重复打扰；
+daily 级（log_missing / session_unseen）只写报告，不推送。
+三不铁律：不代答（不等用户拍板替任务表态）、不派工（不 task_create / 不 CreateSession）、
+不改码（不动任何仓库文件）。
+生命周期：被盯任务全部闭环（done/failed/cancelled）即向 owner 报告并解散，不等指令。
+```
+
+### 9.3 报告文件路径约定
+
+- 目录：`offices/<product>/reports/watchdog/`（该产品办公室私有，写自己那份，见 §12）；
+- 文件：`YYYY-MM-DD.md`，按轮追加，每轮以 `## HH:MM` 分隔；
+- 空发现照写「本轮无发现」——正常静默也要留痕，这是"状态说实话"的凭证；
+- 分级：`immediate`（停摆/返修要求/CI 挂，notifyWatchdog 推 owner）与 `daily`（日志缺失/会话盲区，只进报告，汇总日报 v0.5 再合并）。
+
+## 10. 调用示例
 
 **登记并派工**
 
@@ -239,7 +288,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 { "name": "decision_answer", "arguments": { "id": 12, "answer": "选改动小", "action": "continue" } }
 ```
 
-## 10. 项目索引与执行目录路由
+## 11. 项目索引与执行目录路由
 
 **分级关系**：用户的意图 → 命中哪个任务 → 任务属于哪个项目 → 该项目在哪个目录执行。
 
@@ -249,7 +298,7 @@ description: 本机 agent 任务台账的接口人行为规范。当用户下达
 - 派工指令里的工作区必须等于索引里的 workspace，不一致就停下问人；
 - 新项目立项加一条；项目换目录只改这一处。
 
-## 11. 接入新产品时的目录纪律
+## 12. 接入新产品时的目录纪律
 
 每接入一个 agent 产品，必须先给它建办公室，再谈派工：
 
