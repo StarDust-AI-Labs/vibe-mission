@@ -91,6 +91,44 @@ function sendViaLarkCli(message, userId, dryRun) {
   }
 }
 
+// ---- Watchdog 告警（值守会话用，scripts/watchdog.mjs 的发现 → 直调通道） ------
+// watchdog 发现不是任务：无法走 alert_sent 事件幂等（events.task_id NOT NULL，
+// 见 docs/implementation-gaps.md G5），改用 suppressKeys（type:object）由值守
+// 会话跨轮去重；schema 迁移落地后可再换事件幂等。只推 immediate 级发现。
+
+export function watchdogKey(f) {
+  return `${f.type}:${f.object}`;
+}
+
+export function renderWatchdogMessage(findings, { generatedAt } = {}) {
+  const lines = [`【VibeMission 看门狗】${findings.length} 条发现需要 owner 处理`];
+  if (generatedAt) lines.push(`报告时间：${generatedAt}`);
+  for (const f of findings) {
+    lines.push('', `⛔ [${f.type}] ${f.object}`, `证据：${f.evidence}`, `建议：${f.suggestedAction}`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * 值守会话每轮调用：把"需要 owner 处理"的发现推给 owner。
+ * @param {Array} findings scripts/watchdog.mjs 报告里的 findings 数组
+ * @param {string[]} [suppressKeys] 本轮之前已推过的 watchdogKey（跨轮幂等）
+ * @param {Function} [send] 发送实现（默认 sendViaLarkCli，测试注入）
+ */
+export function notifyWatchdog({ findings = [], userId, dryRun = false, suppressKeys = [], send = sendViaLarkCli, generatedAt } = {}) {
+  const immediate = findings.filter((f) => f.severity === 'immediate');
+  const pending = immediate.filter((f) => !suppressKeys.includes(watchdogKey(f)));
+  if (pending.length === 0) {
+    return { sent: false, message: null, keys: [], reason: immediate.length ? 'suppressed' : 'none-immediate' };
+  }
+  if (!userId) {
+    return { sent: false, message: null, keys: pending.map(watchdogKey), reason: 'recipient-missing' };
+  }
+  const message = renderWatchdogMessage(pending, { generatedAt });
+  const r = send(message, userId, dryRun);
+  return { sent: r.ok && !dryRun, dryRun, message, keys: pending.map(watchdogKey), result: r };
+}
+
 export function main(argv = process.argv.slice(2)) {
   const opts = parseArgs(argv);
   const dbPath = opts.db ?? resolveDbPath();
