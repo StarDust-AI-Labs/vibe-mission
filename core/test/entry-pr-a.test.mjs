@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-import { openStore } from '../src/store.mjs';
+import { openStore, openStoreReadOnly } from '../src/store.mjs';
 import { migrate, currentVersion, LATEST_VERSION } from '../src/migrate.mjs';
 import { computeQueue, formatQueueEntry, staleEntries, orderQueue } from '../src/queue.mjs';
 import { classifyHeartbeat, STATES, HEARTBEAT } from '../src/heartbeat.mjs';
@@ -74,6 +74,43 @@ test('迁移：老库（只有 base 表）升级后可写绑定表，任务数�
     assert.equal(upgraded.listEntryBindings('sess_old').length, 1);
   } finally {
     upgraded.close();
+  }
+});
+
+test('只读通道：openStoreReadOnly 不能写（迁移不会顺手发生）', () => {
+  const dbPath = join(dir, 'ro.sqlite');
+  store.close();
+  const rw = openStore(dbPath);
+  const t = rw.insertTask({ title: '只读实验' });
+  rw.close();
+
+  const ro = openStoreReadOnly(dbPath);
+  try {
+    assert.equal(ro.getTask(t.id).title, '只读实验', '只读能查');
+    assert.throws(() => ro.insertTask({ title: '不该写进去' }), /readonly|read-only|attempt to write/i);
+  } finally {
+    ro.close();
+  }
+  store = openStore(dbPath);
+});
+
+test('只读通道：schema 落后可被识别（不自动升级）', () => {
+  const dbPath = join(dir, 'behind.sqlite');
+  const raw = new DatabaseSync(dbPath);
+  raw.exec('CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT)');
+  raw.close();
+
+  const ro = openStoreReadOnly(dbPath);
+  try {
+    let behind;
+    try {
+      behind = currentVersion(ro.db) < LATEST_VERSION;
+    } catch {
+      behind = true; // schema_meta 不存在
+    }
+    assert.equal(behind, true, '缺 schema_meta 必须判为落后');
+  } finally {
+    ro.close();
   }
 });
 
@@ -151,16 +188,27 @@ test('排队：位置、已等时长、ETA 递增', () => {
 
   assert.deepEqual(entries.map((e) => e.position), [1, 2, 3, 4]);
   assert.equal(entries[0].waitedMs, 5 * 60_000);
-  assert.equal(entries[0].etaMs, 90_000, '第 1 位只需一轮');
-  assert.equal(entries[2].etaMs, 90_000, '前 3 位同一批');
-  assert.equal(entries[3].etaMs, 180_000, '第 4 位要等两轮');
+  assert.equal(entries[0].etaMs, 0, '位置 ≤ 并发上限 → 立即开始');
+  assert.equal(entries[2].etaMs, 0, '前 3 位同一批，都是立即');
+  assert.equal(entries[3].etaMs, 90_000, '第 4 位等当前批结束一轮');
 });
 
 test('排队：空队列与单条', () => {
   assert.deepEqual(computeQueue([], { now: 0 }), []);
   const one = computeQueue([{ id: 7, displayId: 'tp-0007', title: '单', created_at: 0 }], { now: 1000 });
   assert.equal(one[0].position, 1);
-  assert.equal(one[0].etaMs, 90_000);
+  assert.equal(one[0].etaMs, 0, '单个任务直接开跑');
+});
+
+test('排队：超出并发上限才需要等一轮', () => {
+  const tasks = [1, 2, 3, 4].map((n) => ({ id: n, displayId: `tp-000${n}`, title: `${n}`, created_at: n }));
+  const entries = computeQueue(tasks, { limit: 2, turnMs: 60_000, now: 10 });
+  assert.deepEqual(entries.map((e) => e.etaMs), [0, 0, 60_000, 60_000]);
+});
+
+test('排队：位置 ≤ 上限时文案显示「立即」', () => {
+  const line = formatQueueEntry({ position: 1, displayId: 'tp-0001', title: 'x', waitedMs: 0, etaMs: 0 });
+  assert.match(line, /预计 立即/);
 });
 
 test('排队：文案带位置 / 编号 / 等待 / 预计', () => {
@@ -191,9 +239,15 @@ test('排队：store.listQueued 只取 todo，且按创建时间', () => {
 
 // ── ⑤ 心跳 ──────────────────────────────────────────────────────────────────
 
-test('心跳：刚开始跑 → healthy，不打扰', () => {
+test('心跳：无心跳源时不判健康也不判失联（no_source）', () => {
   const r = classifyHeartbeat({ startedAt: 0, now: 30_000 });
-  assert.equal(r.state, STATES.HEALTHY);
+  assert.equal(r.state, STATES.NO_SOURCE);
+  assert.equal(r.shouldReport, false);
+});
+
+test('心跳：无心跳源跑满 60 秒也不会被判失联（防批量误杀）', () => {
+  const r = classifyHeartbeat({ startedAt: 0, now: 10 * 60_000 });
+  assert.equal(r.state, STATES.NO_SOURCE, '没有 beat 事件就不能判 lost');
   assert.equal(r.shouldReport, false);
 });
 
@@ -223,7 +277,7 @@ test('心跳：失联优先于进度汇报', () => {
 });
 
 test('心跳：阈值可注入', () => {
-  const r = classifyHeartbeat({ startedAt: 0, now: 5_000, lostAfterMs: 1_000 });
+  const r = classifyHeartbeat({ startedAt: 0, lastBeatAt: 0, now: 5_000, lostAfterMs: 1_000 });
   assert.equal(r.state, STATES.LOST);
 });
 

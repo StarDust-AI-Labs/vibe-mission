@@ -25,9 +25,9 @@ export function orderQueue(tasks) {
 /**
  * Compute queue positions and ETAs.
  *
- * ETA model: `limit` slots drain one turn every `turnMs`, so a task at position
- * `p` starts after roughly ceil(p / limit) turns. Deliberately coarse — the
- * user needs "roughly when", not a scheduler.
+ * ETA model: `limit` slots drain one turn every `turnMs`. A task that still fits
+ * in the current batch (position ≤ limit) starts now → ETA 0 ("立即"), not one
+ * whole turn; anything beyond waits ceil(position / limit) turns.
  *
  * @param {Array} tasks rows with id/displayId/title/created_at
  * @param {{limit?: number, turnMs?: number, now?: number}} [opts]
@@ -48,7 +48,9 @@ export function computeQueue(tasks, opts = {}) {
       position,
       enqueuedAt: Number(task.created_at),
       waitedMs: Math.max(0, now - Number(task.created_at)),
-      etaMs: Math.ceil(position / limit) * turnMs,
+      // Fits in the current batch → starts immediately; otherwise wait for the
+      // batch that contains it: ceil((position - limit) / limit) turns.
+      etaMs: position <= limit ? 0 : Math.ceil((position - limit) / limit) * turnMs,
     };
   });
 }
@@ -56,8 +58,8 @@ export function computeQueue(tasks, opts = {}) {
 /** Human-readable one-liner: `第 2 位 · #41 支付对账 · 已等 3 分钟 · 预计 6 分钟内`. */
 export function formatQueueEntry(entry) {
   const waited = Math.round(entry.waitedMs / 60_000);
-  const eta = Math.max(1, Math.round(entry.etaMs / 60_000));
-  return `第 ${entry.position} 位 · ${entry.displayId} ${entry.title} · 已等 ${waited} 分钟 · 预计 ${eta} 分钟内`;
+  const eta = entry.etaMs === 0 ? '立即' : `${Math.max(1, Math.round(entry.etaMs / 60_000))} 分钟内`;
+  return `第 ${entry.position} 位 · ${entry.displayId} ${entry.title} · 已等 ${waited} 分钟 · 预计 ${eta}`;
 }
 
 /**

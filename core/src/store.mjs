@@ -259,27 +259,50 @@ export class Store {
 }
 
 /**
- * Open (and migrate) the task store.
+ * Open the task store (read/write), applying pending migrations.
+ *
+ * Migration is a write. Any caller that promises "read-only" must use
+ * `openStoreReadOnly` instead — writing through a read-only CLI is exactly the
+ * contradiction that got this flagged in review (2026-11-29).
+ *
  * @param {string} dbPath
+ * @param {{migrate?: boolean}} [options] migrate:false skips DDL + migrations
+ *   (still read/write at the SQLite level — prefer openStoreReadOnly for reads)
  */
-export function openStore(dbPath) {
+export function openStore(dbPath, options = {}) {
   if (typeof DatabaseSync !== 'function') {
     throw new TaskPierError(
       Codes.STORE_ERROR,
       'node:sqlite unavailable — TaskPier core requires Node >= 23.4.0 (unflagged node:sqlite)',
     );
   }
+  const runMigrations = options.migrate !== false;
   try {
     mkdirSync(dirname(dbPath), { recursive: true });
     const db = new DatabaseSync(dbPath);
-    db.exec('PRAGMA journal_mode = WAL;');
     db.exec('PRAGMA foreign_keys = ON;');
-    db.exec(DDL);
-    // Base tables exist; now bring schema forward (④ 绑定表 + 度量埋点表).
-    migrate(db);
+    if (runMigrations) {
+      db.exec('PRAGMA journal_mode = WAL;');
+      db.exec(DDL);
+      // Base tables exist; now bring schema forward (④ 绑定表 + 度量埋点表).
+      migrate(db);
+    }
     return new Store(db);
   } catch (err) {
     if (err instanceof TaskPierError) throw err;
     throw new TaskPierError(Codes.STORE_ERROR, `failed to open store at ${dbPath}: ${err.message}`);
+  }
+}
+
+/**
+ * Open the store without the ability to write anything — no DDL, no migrations.
+ * @param {string} dbPath
+ */
+export function openStoreReadOnly(dbPath) {
+  try {
+    const db = new DatabaseSync(dbPath, { readOnly: true });
+    return new Store(db);
+  } catch (err) {
+    throw new TaskPierError(Codes.STORE_ERROR, `failed to open store read-only at ${dbPath}: ${err.message}`);
   }
 }

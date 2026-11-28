@@ -5,8 +5,9 @@
 //   - no beat for 60 s  → treat as lost, state goes `failed`
 //
 // A "beat" is an explicit progress event (task_update with a step counter), not
-// mere liveness of the process. Inference from `updated_at` is the fallback when
-// a task session has not emitted beats yet — see `classifyHeartbeat`.
+// mere liveness of the process. Until a task emits its first beat the state is
+// `no_source` — neither healthy nor lost — so wiring this up cannot mass-fail
+// tasks that never reported anything.
 
 export const HEARTBEAT = {
   lostAfterMs: 60_000,
@@ -17,6 +18,7 @@ export const STATES = {
   HEALTHY: 'healthy',
   OVERDUE: 'overdue',
   LOST: 'lost',
+  NO_SOURCE: 'no_source',
 };
 
 /**
@@ -40,8 +42,24 @@ export function classifyHeartbeat(input) {
   const progressAfter = input.progressAfterMs ?? HEARTBEAT.progressAfterMs;
 
   const startedAt = Number(input.startedAt);
-  const lastBeatAt = input.lastBeatAt == null ? startedAt : Number(input.lastBeatAt);
+  const lastBeatAt = input.lastBeatAt == null ? null : Number(input.lastBeatAt);
   const elapsedMs = Math.max(0, now - startedAt);
+
+  // No beat source: most tasks do not emit beats yet. Judging them "lost" would
+  // mass-fail every running task the moment this gets wired up (review,
+  // 2026-11-29), so the lost rule only applies once a real beat has been seen.
+  if (lastBeatAt == null) {
+    return {
+      state: STATES.NO_SOURCE,
+      silentMs: 0,
+      elapsedMs,
+      shouldReport: false,
+      report: null,
+      step: input.step ?? null,
+      totalSteps: input.totalSteps ?? null,
+    };
+  }
+
   const silentMs = Math.max(0, now - lastBeatAt);
 
   // Lost takes precedence: a 20-minute progress report about a dead task is
